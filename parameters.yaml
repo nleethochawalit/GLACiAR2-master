@@ -1,0 +1,54 @@
+n_galaxies: 200
+n_iterations: 5
+mag_bins: 9
+min_mag: 24.0
+max_mag: 28.0
+z_bins: 6
+min_z: 7.5
+max_z: 8.5
+n_bands: 4
+ref_uv_wavelength: 1450
+detection_band: f160w
+bands:
+- f160w
+- f814w
+- f105w
+- f125w
+zeropoints:
+- 25.9463
+- 25.947
+- 26.2687
+- 26.2303
+gain_values:
+- 0 
+- 0 
+- 0
+- 0
+list_of_fields: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glacier/CANDELS/list.txt
+R_eff: 1.075
+beta_mean: -2.2
+beta_sd: 0.4
+size_pix: 0.06
+margin: 0.3
+path_to_images: /Users/nleethochawa/Documents/workspace_UVLF/CANDELS_data/
+path_to_results: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glacier/CANDELS/flat2/
+image_name: hlsp_candels_hst_wfc3_gs-tot-
+imfits_end: _v1.0_drz.fits
+rmsfits_end: _v1.0_rms.fits
+types_galaxies: 2
+sersic_indices:
+- 1
+- 4
+fraction_type_galaxies:
+- 0.5
+- 0.5
+ibins: 1
+ebins: 1
+min_sn: 8.0
+dropouts: True
+de_Vacouleur: True
+LF_shape: ['flat']
+extended_mag_bins_low: 1
+extended_mag_bins_high: 1
+lin_slope: 100
+exp_base: 1.5
