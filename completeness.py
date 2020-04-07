@@ -670,7 +670,8 @@ def main(minimal_file=True):
         output_dict = {'Nin':Nin,'Nout_detect':nout_completeness,
                        'Nout_dropout':nout_dropouts,'magout':m_output,
                        'Magin':M_input,'redshift':z_total,
-                       'LF_shape':parameters['LF_shape']} 
+                       'LF_shape':parameters['LF_shape'],
+                       'Niteration':parameters['n_iterations']} 
         outpicklefile = open(parameters['path_to_results']+
                          'Results/GLACiAR_output_'+cat[ic]+'.pickle','wb')
         pickle.dump(output_dict, outpicklefile)
