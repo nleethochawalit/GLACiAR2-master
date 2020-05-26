@@ -4,7 +4,8 @@ Writes the configuration files with the parameters to run SExtractor.
 
 
 def main(name_band, detection_band, zp, g, path_to_im, path_to_results, 
-         niter, image_name, cat, rmsfits_end,roundnum = 0):
+         niter, image_name, cat, rmsfits_end,roundnum = 0,
+         do_segmentation=False):
     """
     Writes and saves the configuration files needed to run SExtractor
     according to the parameters given by the user. It saves new files
@@ -34,7 +35,7 @@ def main(name_band, detection_band, zp, g, path_to_im, path_to_results,
     # according to the input parameters, are overwritten. A new file is
     # saved for each band with k_new as the text.
     k_new = k
-    if name_band == detection_band:
+    if (name_band == detection_band) or do_segmentation:
         for i in range(len(k)):
             if k[i] == 'MAG_ZEROPOINT\n':
                 k_new[i] = 'MAG_ZEROPOINT    '+str(zp) + '\n'
@@ -45,7 +46,7 @@ def main(name_band, detection_band, zp, g, path_to_im, path_to_results,
             if k[i] == 'CHECKIMAGE_NAME\n':
                 k_new[i] = 'CHECKIMAGE_NAME'+\
                 ' %sResults/SegmentationMaps/Segmentation_maps_i%d.%d_%s'%(
-                        path_to_results,niter,roundnum,name_band)+'.fits \n'
+                        path_to_results,niter,roundnum,detection_band)+'.fits \n'
             if k[i] == 'CATALOG_NAME\n':
                 k_new[i] = 'CATALOG_NAME test \n'
             if k[i] == 'WEIGHT_IMAGE\n':
@@ -53,7 +54,7 @@ def main(name_band, detection_band, zp, g, path_to_im, path_to_results,
                 '%s%s%s_%s%s, %s%s%s_%s%s \n'%(path_to_im, image_name, cat, 
                                                detection_band, rmsfits_end, 
                                                path_to_im, image_name, cat, 
-                                               detection_band, rmsfits_end)
+                                               name_band, rmsfits_end)
                 
         nf = open('SExtractor_files/parameters_' + name_band + '.sex', 'w')
         nf.writelines(k_new)

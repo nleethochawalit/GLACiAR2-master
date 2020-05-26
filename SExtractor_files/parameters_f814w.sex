@@ -1,72 +1,56 @@
 #-------------------------------- Catalog ------------------------------------
- 
-CATALOG_TYPE     ASCII_HEAD
+CATALOG_NAME test 
+CATALOG_TYPE     FITS_1.0
 PARAMETERS_NAME  SExtractor_files/default3.param
  
 #------------------------------- Extraction ----------------------------------
  
 DETECT_TYPE      CCD
-DETECT_MINAREA   9
-DETECT_THRESH    0.7
-ANALYSIS_THRESH  5.0
- 
+DETECT_MINAREA   14
+DETECT_THRESH    1.8
+ANALYSIS_THRESH  1.4
 FILTER           Y
-FILTER_NAME      SExtractor_files/gauss_2.0_5x5.conv
- 
+FILTER_NAME      SExtractor_files/gauss_4.0_7x7.conv 
 DEBLEND_NTHRESH  32
-DEBLEND_MINCONT  0.001
- 
-CLEAN            Y
+DEBLEND_MINCONT  0.0001
+CLEAN            N
 CLEAN_PARAM      1.0
- 
 MASK_TYPE        CORRECT
  
 #------------------------------ Photometry -----------------------------------
  
-PHOT_APERTURES   2,4,6,8,10
+PHOT_APERTURES   3.33,5.83,11.67,16.67,20 #0.2,0.35,0.7,1.1,1.2 arcsec aper
 PHOT_AUTOPARAMS  2.5, 3.5
 PHOT_PETROPARAMS 2.0, 3.5
-
-PHOT_FLUXFRAC	0.5,0.9
-
+PHOT_FLUXFRAC	 0.5,0.9
 SATUR_LEVEL      50000.0
-
-MAG_ZEROPOINT    25.947
+MAG_ZEROPOINT    25.94
 MAG_GAMMA        4.0            
-GAIN             0
-GAIN_KEY         GAIN           
-PIXEL_SCALE      0.08
+GAIN             1
+#GAIN_KEY        GAIN           
+PIXEL_SCALE      0.06
  
 #------------------------- Star/Galaxy Separation ----------------------------
  
-SEEING_FWHM      0.18
+SEEING_FWHM      0.173
 STARNNW_NAME     SExtractor_files/default.nnw
- 
+
+#-------------------------------- WEIGHTing ----------------------------------
+WEIGHT_TYPE NONE, MAP_WEIGHT
+WEIGHT_IMAGE     /Users/nleethochawa/Documents/workspace_UVLF/CANDELS_data/HLF/hlsp_hlf_hst_60mas_goodss_det_v2.0_conv_wht.fits, /Users/nleethochawa/Documents/workspace_UVLF/CANDELS_data/HLF/hlsp_hlf_hst_60mas_goodss_f814w_v2.0_conv_wht.fits 
+WEIGHT_GAIN Y
 #------------------------------ Background -----------------------------------
-BACK_TYPE        AUTO  
-BACK_SIZE        64
-BACK_FILTERSIZE  3
- 
-BACKPHOTO_TYPE   GLOBAL
- 
+BACK_TYPE        MANUAL  
+BACK_VALUE       0.
 #------------------------------ Check Image ----------------------------------
 
 CHECKIMAGE_TYPE
 CHECKIMAGE_NAME 
  
 #--------------------- Memory (change with caution!) -------------------------
- 
-MEMORY_OBJSTACK  3000
-MEMORY_PIXSTACK  300000
+MEMORY_OBJSTACK  65500
+MEMORY_PIXSTACK  10000000
 MEMORY_BUFSIZE   1024
  
 #----------------------------- Miscellaneous ---------------------------------
- 
 VERBOSE_TYPE     NORMAL
-WRITE_XML        N
-XML_NAME         sex.xml
-    
-WEIGHT_IMAGE     /Users/nleethochawa/Documents/workspace_UVLF/CANDELS_data/hlsp_candels_hst_wfc3_gs-tot-sect23_f160w_v1.0_rms.fits, /Users/nleethochawa/Documents/workspace_UVLF/CANDELS_data/hlsp_candels_hst_wfc3_gs-tot-sect23_f814w_v1.0_rms.fits 
-CATALOG_NAME test 
-WEIGHT_TYPE MAP_RMS, MAP_RMS
-WEIGHT_GAIN N,N

@@ -44,6 +44,10 @@ if parameters['detection_band'] is None:
     raise ValueError('Input detection band.')
 if parameters['bands'] is None:
     raise ValueError('Input name of the bands.')
+if parameters['detection_band_combination'] is None:
+    parameters['detection_band_combination'] = None
+if parameters['coadd_type'] is None:
+    parameters['coadd_type'] = 1 #1 = simple coadd, 2 = noise-:equalized coadd
 if parameters['list_of_fields'] is None:
     raise ValueError('Input file with the fields.')
 if parameters['R_eff'] is None:
@@ -56,6 +60,8 @@ if parameters['size_pix'] is None:
     parameters['size_pix'] = 0.08
 if parameters['margin'] is None:
     parameters['margin'] = 0.3 #arcsecond. Margin for injection/recovery
+if parameters['fixed_psf'] is None:
+    parameters['fixed_psf'] = None
 if parameters['types_galaxies'] is None:
     parameters['types_galaxies'] = 2
 if parameters['ibins'] is None:
@@ -84,6 +90,8 @@ if (parameters['gain_values'] is None or
     raise ValueError('Input gain values for each band.')
 if parameters['dropouts'] is None:
     parameters['dropouts'] = False
+if parameters['droptype'] is None: #bort, hlf, candels
+    parameters['droptype'] = 'borg'
 if parameters['de_Vacouleur'] is None:
     parameters['de_Vacouleur'] = False
 if parameters['LF_shape'] is None:
@@ -95,10 +103,59 @@ if parameters['extended_mag_bins_high'] is None:
 if parameters['lin_slope'] is None:
     parameters['lin_slope'] = 2
 if parameters['exp_base'] is None:
-    parameters['lin_slope'] = 2
+    parameters['exp_base'] = 2
+if parameters['n_inject_max'] is None:
+    parameters['n_inject_max'] = parameters['n_galaxies']
+
+#check stuff
+if ((parameters['coadd_type'] <= 0) or (parameters['coadd_type'] > 2)):
+    raise ValueError('Input coadd_type will not be recognized.')
+
+def delete_id_fits(original_file, ids, id_keep=False):
+    """Delete sextractor entries in fits format by id number"""
+    
+    f1 = fits.open(original_file,ignore_missing_end=True)
+    if id_keep is True:
+        indices = np.where(np.in1d(f1[1].data['NUMBER'], ids, 
+                                   assume_unique=True))[0]
+    else:
+        indices = np.where(np.in1d(f1[1].data['NUMBER'], ids, 
+                                   assume_unique=True, invert=True))[0]
+    
+    f1[1].data = f1[1].data[indices] 
+    f1.writeto(original_file,overwrite=True)
+        
+def delete_multiple_lines(original_file, line_numbers, line_keep=False):
+    """In a file, delete the lines at line number in given list"""
+    if line_keep is True:
+        num_lines = sum(1 for line in open(original_file))
+        line_numbers = np.setdiff1d(np.arange(num_lines),line_numbers)
+        
+    is_skipped = False
+    counter = 0
+    # Create name of dummy / temporary file
+    dummy_file = original_file + '.bak'
+    # Open original file in read only mode and dummy file in write mode
+    with open(original_file, 'r') as read_obj, open(dummy_file, 'w') as write_obj:
+        # Line by line copy data from original file to dummy file
+        for line in read_obj:
+            # If current line number exist in list then skip copying that line
+            if counter not in line_numbers:
+                write_obj.write(line)
+            else:
+                is_skipped = True
+            counter += 1
+ 
+    # If any line is skipped then rename dummy file as original file
+    if is_skipped:
+        os.remove(original_file)
+        os.rename(dummy_file, original_file)
+    else:
+        os.remove(dummy_file)
+
 def create_stamps(n0, size_galaxy0, Re0, types_galaxies0, ebins0, ibins0):
     """
-    Creates a galaxy following a Sersic profile.
+    Creates a galaxy following a Sersic profile. (flux is normalized to 1)
 
     Args:
         n0 (int array) = Array with Sersic indexes.
@@ -130,13 +187,17 @@ def create_stamps(n0, size_galaxy0, Re0, types_galaxies0, ebins0, ibins0):
                                                                  Re0, 0, 0,
                                                                  size_galaxy0)
         else:
-            print('index eccentr incl')
+            print('sersic index = %d'%n0[i])
+            print('eccentricity:', evalues)
+            print('inclination:', ivalues)
             for j in range(ebins0):
                 for k in range(ibins0):
-                    print(n0[i], evalues[j], ivalues[k])
+                    #print(n0[i], evalues[j], ivalues[k])
+                    print(".", end = '')
                     galaxy_grid[i, j, k, :, :] = creation_of_galaxy.makeSersic(
                                                   n0[i], bn, Re0, evalues[j],
                                                   ivalues[k], size_galaxy0)
+            print('\n')
     return galaxy_grid, galaxy_grid_n4
 
 
@@ -206,6 +267,103 @@ def place_gal(n0, ngal, frac_n, e0, i0, flux0, frame0, x0, y0, s0, gal_g,
             gn = gn + 1
     return frame0
 
+def coadd_images(path_to_results, cat, detection_band_combination,
+                 detection_band, path_to_im, image_name,
+                 rmsfits_end, coadd_type):
+    """
+    Coadd images in detection_band_combination
+    If coadd_type = 1: simple average
+    If coadd_type = 2: noise-equalized average 
+    *** If coadd_type =2, assume that the *rmsfits_end images are weight image!!
+    """
+    #creating template frame
+    hdu_list = fits.open('%sResults/images/sersic_sources_%s_%s.fits'%
+                             (path_to_results,cat,detection_band_combination[0]),
+                             ignore_missing_end=True)
+    head_data = hdu_list[0].header
+    shape = hdu_list[0].data.shape
+    hdu_list.close()
+    
+    frame = np.zeros(shape,dtype=np.float32)
+    
+    #adding bands to frame
+    if coadd_type == 1:
+        for ib in range(len(detection_band_combination)):
+            imhdu = fits.open('%sResults/images/sersic_sources_%s_%s.fits'%
+                             (path_to_results,cat,detection_band_combination[ib]),
+                             ignore_missing_end=True)
+            frame += +imhdu[0].data   
+            imhdu.close()
+        
+    elif coadd_type == 2:
+        for ib in range(len(detection_band_combination)):
+            whthdu = fits.open('%s%s%s_%s%s'%(path_to_im, image_name, cat, 
+                                 detection_band_combination[ib], rmsfits_end),
+                               ignore_missing_end=True)
+            divider = np.sqrt(whthdu[0].data, 
+                              out = np.zeros(shape,dtype=np.float32), 
+                              where = whthdu[0].data >= 0)
+            whthdu.close()
+            imhdu = fits.open('%sResults/images/sersic_sources_%s_%s.fits'%
+                             (path_to_results,cat,detection_band_combination[ib]),
+                             ignore_missing_end=True)
+            frame += imhdu[0].data*divider
+            imhdu.close()
+            
+    frame /= len(detection_band_combination)
+    outfile_conv = '%sResults/images/sersic_sources_%s_%s.fits'%(
+        path_to_results,cat,detection_band)     
+    # Save the new fits file with the simulated galaxies.
+    fits.writeto(outfile_conv, frame,head_data, overwrite=True)
+                                
+def create_synthetic_fits(name_hdu_list1,band,imfits_end,m,sersic_indices,
+                          ninject,fraction_type_galaxies,e_rand,i_rand,flux,
+                          xpos,ypos,stamp_radius,galaxy_grid,galaxy_grid_n4,
+                          path_to_results,cat,return_framegal = False,
+                          fixed_psf = None):
+    """
+    This function place fake galaxies in the images and save as fits
+    in path_to_results+'Results/images/sersic_sources_'+ cat+'_'+band+'.fits'
+    
+    If return_framegal = True, then it will also return the fake galaxies frame
+    """
+    # Empty array of the size of the science image
+    # where the simulated galaxies will be placed.                               
+    obs, head_obs = open_images(name_hdu_list1,band,imfits_end) 
+    frame = np.zeros(obs.shape,dtype=np.float32)  
+    
+    # if the artificial galaxy is brighter than
+    # 50 mangitudes (some flux is expected, but very
+    # conservative margin), place it in the image.
+    if m < 50:
+        # Open PSF file to convolve with the galaxy.
+        if fixed_psf is None:
+            psf_file = 'Files/psf_' +band + '.fits'
+        else:
+            psf_file = 'Files/'+fixed_psf
+        ipsf=0
+        hdu_psf = fits.open(psf_file)
+        psf = hdu_psf[ipsf].data
+        hdu_psf.close()
+        #placing all galaxies on array of zeros
+        frame_gal = place_gal(sersic_indices,ninject,fraction_type_galaxies,
+                              e_rand, i_rand, flux, frame,
+                              xpos, ypos, stamp_radius, galaxy_grid,
+                              galaxy_grid_n4, psf)
+    # if the galaxy is fainter than 50 magnitudes
+    # (undetectable), save the original image.
+    else:
+        frame_gal = frame
+        
+    # new synthesized image = observed image + simulated galaxies
+    new_data2 = obs + frame_gal
+    outfile_conv = '%sResults/images/sersic_sources_%s_%s.fits'%(path_to_results,cat,band)
+        
+    # Save the new fits file with the simulated galaxies.
+    fits.writeto(outfile_conv, new_data2,head_obs, overwrite=True)
+    
+    if return_framegal is True:
+        return frame_gal
 
 def main(minimal_file=True):
     # Open the file with the name of the fields that the simulation
@@ -281,15 +439,15 @@ def main(minimal_file=True):
     #copy Schechter parameter if LF shape is specified as Schechter    
     for ilf in range(nLF):
         parameters['LF_shape'][ilf] = parameters['LF_shape'][ilf].lower()
-        if parameters['LF_shape'][ilf] == 'schechter': 
+        if ((parameters['LF_shape'][ilf] == 'schechter') or 
+            (parameters['LF_shape'][ilf] == 'schechter_full')): 
             copyfile('Files/LF_Schechter_params.txt', 
                      parameters['path_to_results']+'LF_Schechter_params.txt')        
     #loop for each field
     for ic in range(len(cat)):    
         print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
         print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-        print('running field '+cat[ic])
-        print('\n')
+        print('running field %s \n'%cat[ic])
         
         # Empty array to save the simulation results (for pickles)
         nout_completeness = np.zeros((nmagbins_out,nmagbins_in,nzbins,nLF))
@@ -303,46 +461,57 @@ def main(minimal_file=True):
                           parameters['image_name']+cat[ic]+'_')
         #run SExtractor on science images
         run_sextractor.science_image(parameters['bands'],
-                       parameters['detection_band'], 
-                       parameters['zeropoints'],
-                       parameters['gain_values'], 
-                       parameters['path_to_images'],
-                       parameters['path_to_results'],
-                       parameters['image_name'], cat[ic],
-                       imfits_end =parameters['imfits_end'], 
-                       rmsfits_end=parameters['rmsfits_end'])
+                        parameters['detection_band'], 
+                        parameters['zeropoints'],
+                        parameters['gain_values'], 
+                        parameters['path_to_images'],
+                        parameters['path_to_results'],
+                        parameters['image_name'], cat[ic],
+                        imfits_end =parameters['imfits_end'], 
+                        rmsfits_end=parameters['rmsfits_end'])
 
         # Open science image.
         obs_data_db, header_db = open_images(name_hdu_list1,
                                              parameters['detection_band'],
                                              parameters['imfits_end'])
+        # Obs_data_db will be used for assigning positions of fake galaxies
         
         # Open segmentation maps from original science image.
         segm_science_old = fits.open(parameters['path_to_results'] +
-                                     '/SciImages/sources_'+cat[ic]+'_' +
+                                     'SciImages/sources_'+cat[ic]+'_' +
                                      parameters['detection_band'] +
                                      '_segm.fits', ignore_missing_end=True)
         segm_maps_old = segm_science_old[0].data
         segm_science_old.close()
         # Open SExtractor catalogue with the identified sources from the
         # original science image and save the following information
-        # about the sources.
+        # about the sources on the detection band, or the chosen main detection band
         # id_old_cat = SExtractor ID.
         # m_old_cat = AUTO magnitude.
         # f_old_cat = ISO flux.
         # xpos_old_cat = Centre position in the x axis.
         # ypos_old_cat = Centre position in the y axis.
-        f_old_cat = open(parameters['path_to_results']+'/SciImages/sources_' +
-                         cat[ic]+'_'+parameters['detection_band']+'.cat', 'r')
-        k_oc = f_old_cat.readlines()
-        f_old_cat.close()
-        id_old_cat = [int(line.split()[0]) for line in k_oc[27:]]
-        m_old_cat = [float(line.split()[27]) for line in k_oc[27:]]
-        f_old_cat = [float(line.split()[25]) for line in k_oc[27:]]
-        xpos_old_cat = [float(line.split()[31]) for line in k_oc[27:]]
-        ypos_old_cat = [float(line.split()[32]) for line in k_oc[27:]]
+        if parameters['detection_band']=='det':
+            ibmain = parameters['bands'].index(parameters['detection_band_combination'][0])
+            f_old_hdu = fits.open('%sSciImages/sources_%s_%s_cat.fits'%
+                             (parameters['path_to_results'],cat[ic],
+                              parameters['detection_band_combination'][0]),
+                             ignore_missing_end=True)
+        else:
+            f_old_hdu = fits.open('%sSciImages/sources_%s_%s_cat.fits'%
+                             (parameters['path_to_results'],cat[ic],
+                              parameters['detection_band']),
+                             ignore_missing_end=True)
+            ibmain = 0
+                
+        id_old_cat = f_old_hdu[1].data['NUMBER']
+        m_old_cat = f_old_hdu[1].data['MAG_AUTO']
+        f_old_cat = f_old_hdu[1].data['FLUX_ISO']
+        xpos_old_cat = f_old_hdu[1].data['X_IMAGE']
+        ypos_old_cat = f_old_hdu[1].data['Y_IMAGE']
+        f_old_hdu.close()
         
-        # Create files and write headers to save the stats for each field
+        # Create output files and write headers to save the stats for each field
         # and LF
         for ilf in range(nLF):
             curLF = parameters['LF_shape'][ilf]               
@@ -372,8 +541,10 @@ def main(minimal_file=True):
         # Start the real loops                        
         # Run for all the required redshifts.
         for iz in range(parameters['z_bins']):
+            
             redshift = z_total[iz]  # Redshift of the galaxies
-                 
+            print('****************************')
+            print('Redshift z = %.1f'%redshift)     
             # Effective radius in pixels. Equal to 'R_eff' kpc at z = 6 
             # rescaled to the new redshift
             Re = (parameters['R_eff']*(6+1)/(redshift+1.0)) * \
@@ -386,7 +557,7 @@ def main(minimal_file=True):
             stamp_radius = stampsize/2  # Radius of the galaxy stamp.
         
             #Make galaxy stamps with specified Re, and stamp size, and various
-            #ellipticity and inclinations
+            #ellipticity and inclinations. 
             galaxy_grid, galaxy_grid_n4 = create_stamps(
                 parameters['sersic_indices'],stampsize, Re,
                 int(parameters['types_galaxies']), parameters['ebins'],
@@ -422,19 +593,27 @@ def main(minimal_file=True):
                     refwl = parameters['ref_uv_wavelength'] 
                     
                 
-                print('%s LF, redshift z = %.1f'%(curLF, redshift))
+                print('%s LF'%curLF)
                 print('Number of galaxies to be created '
-                      'per iteration (injecting %d galaxies each time):'%
-                      (parameters['n_galaxies']))
+                      'per iteration (injecting maximum %d galaxies each time):'%
+                      (parameters['n_inject_max']))
                 print(ngals)
                 print('\n')
                 Nin[:,iz,ilf] = ngals
     
                 #File to save the recovery info of the simulated galaxies.
                 fwg = open(parameters['path_to_results']+'Results/'+curLF+
-                           'RecoveredGalaxies_'+cat[ic]+'_z%.1f'%redshift+
+                           'RecoveredGalaxies_'+cat[ic]+'_z%.2f'%redshift+
                            '.cat', 'w')
-
+                headline = ('#Mbin, Minput, niter, round_number, id, beta, '
+                            'input %s mag, '%(parameters['bands'][ibmain]) +
+                            'detection, dropout, mag_auto and magerr_auto pairs, ' 
+                            'mag_iso and sn_iso pairs, mag_aper1 and sn_aper1 pairs, '
+                            'mag_aper2 and sn_aper2 pairs in the following bands '+
+                            ''.join([' %s'%x for x in parameters['bands']]) + 
+                            ', r50, r90\n')
+                fwg.writelines(headline)    
+                        
                 
                 # Empty arrays to save the stats.
                 total = np.zeros(nmagbins_in)
@@ -464,92 +643,82 @@ def main(minimal_file=True):
 
                         Magnitude = M_iter[iM][iit] #absolute intrinsic mag for the current iteration
                         
-                        # assign a random beta and create spectrum
+                        # All galaxies in each iteration will have the same spectrum
+                        # Assign a random beta 
                         m = np.zeros(parameters['n_bands'])
                         flux = np.zeros(parameters['n_bands'])
                         beta = random.gauss(parameters['beta_mean'],
                                             parameters['beta_sd'])
-                        creation_of_galaxy.write_spectrum(parameters['bands'][0], 
-                                            Magnitude, beta, redshift, 
-                                            absmag=True, refwl = refwl)
+                        # Create spectrum
+                        creation_of_galaxy.write_spectrum(Magnitude, beta, 
+                                         redshift, absmag=True, refwl = refwl)
+                        
+                        # Calculate input (theoretical observed) AB mag in each band
                         for ib in range(parameters['n_bands']):      
-                            #calculate input (theoretical observed) AB mag in the band
                             m[ib] = creation_of_galaxy.mag_band(parameters['bands'][ib]) 
                             flux[ib] = (10**((parameters['zeropoints'][ib] -
                                         m[ib])/2.5))
+                            
                         print('   iteration %d/%d:'%(iit+1,parameters['n_iterations']))
-                        print('       theoretical m =',m)
-                        #print('       for bands ',parameters['bands'])
-                        #calculate how many rounds of injections for this 
-                        #iteration. Inject total of ngals[iM] galaxies with
-                        #parameters['n_galaxies'] galaxies per injection
-                        nrounds = np.ceil(ngals[iM]/parameters['n_galaxies']).astype(int)
+                        print('       theoretical m =',m, end='')
                         
-                        totinject = 0
+                        # Calculate how many rounds of injections for this 
+                        # iteration. Inject total of ngals[iM] galaxies with
+                        # maximum of parameters['n_inject_max'] galaxies per injection
+                        nrounds = np.ceil(ngals[iM]/parameters['n_inject_max']).astype(int)
+                        totinject = 0 #tally
+                        
+                        # Start injecting
                         for ir in range(nrounds):
                             if ir == nrounds-1: 
                                 ninject = ngals[iM]-totinject
                             else:
-                                ninject = parameters['n_galaxies']   
+                                ninject = parameters['n_inject_max']   
                                 
                             totinject += ninject
                             
-                            # (xpos, ypos) is the position of the center of the
+                            # Assign (xpos, ypos) = the position of the center of the
                             # galaxy in the image in pixels.
                             xpos, ypos = creation_of_galaxy.galaxies_positions(
                                 obs_data_db, ninject, stampsize, Re)
                             
-                            # assign a random beta, incl, and elip.
+                            # Assign a random beta, incl, and elip.
                             i_rand = np.random.randint(0, parameters['ibins'],
                                                        size=ninject)
                             e_rand = np.random.randint(0, parameters['ebins'],
                                                        size=ninject)
                         
-                            # Repeat the following process for all the bands.
-                            # placing galaxies in the images
-                            for ib in range(parameters['n_bands']):      
-                                # Empty array of the size of the science image
-                                # where the simulated galaxies will be placed.
-                                obs, head_obs = open_images(name_hdu_list1,
-                                                    parameters['bands'][ib],
-                                                    parameters['imfits_end']) 
-                                frame = np.zeros(obs.shape)  
+                            # Place galaxies and make fits files in all bands.
+                            for ib in range(parameters['n_bands']): 
+                                create_synthetic_fits(name_hdu_list1,
+                                                      parameters['bands'][ib],
+                                                      parameters['imfits_end'],
+                                                      m[ib],
+                                                      parameters['sersic_indices'],
+                                                      ninject,
+                                                      parameters['fraction_type_galaxies'],
+                                                      e_rand,i_rand,flux[ib],
+                                                      xpos,ypos,stamp_radius,
+                                                      galaxy_grid,galaxy_grid_n4,
+                                                      parameters['path_to_results'],
+                                                      cat[ic],fixed_psf = parameters['fixed_psf'])
+
+                            # Check if there is a separate detection band,
+                            # then create the detection image
+                            if parameters['detection_band']=='det':                                                                     
+                                coadd_images(parameters['path_to_results'],
+                                             cat[ic],
+                                             parameters['detection_band_combination'],
+                                             parameters['detection_band'],
+                                             parameters['path_to_images'], 
+                                             parameters['image_name'],
+                                             parameters['rmsfits_end'],
+                                             parameters['coadd_type'])
                                 
-                                # if the artificial galaxy is brighter than
-                                # 50 mangitudes (some flux is expected, but very
-                                # conservative margin), place it in the image.
-                                if m[ib] < 50:
-                                    # Open PSF file to convolve with the galaxy.
-                                    hdu_psf = fits.open('Files/psf_' +
-                                                        parameters['bands'][ib] + 
-                                                        '.fits')
-                                    psf = hdu_psf[0].data
-                                    hdu_psf.close()
-                            
-                                    frame_gal = place_gal(parameters['sersic_indices'],
-                                                          ninject,parameters[
-                                                          'fraction_type_galaxies'],
-                                                          e_rand, i_rand, flux[ib], frame,
-                                                          xpos, ypos, stamp_radius, galaxy_grid,
-                                                          galaxy_grid_n4, psf)
-                                # if the galaxy is fainter than 50 magnitudes
-                                # (undetectable), save the original image.
-                                else:
-                                    frame_gal = frame
-                                    
-                                # observed image + simulated galaxies
-                                new_data2 = obs + frame_gal
-                                outfile_conv = parameters['path_to_results']+\
-                                    'Results/images/sersic_sources_'+ cat[ic]+\
-                                    parameters['bands'][ib]+'.fits'
-                                    
-                                # Save the new fits file with the simulated galaxies.
-                                fits.writeto(outfile_conv, new_data2,
-                                             head_obs, overwrite=True)
-                                
-                                # Run SExtractor on the new images. This generates
-                                # catalogues with information about the
-                                # detected sources.
+                            # Run SExtractor on the new images and generate
+                            # catalogues of the detected sources.
+                            for ib in range(parameters['n_bands']): 
+                                do_segmentation = True if (ib == 0) else False
                                 run_sextractor.main(parameters['bands'][ib],
                                                     parameters['detection_band'],
                                                     parameters['zeropoints'][ib],
@@ -559,29 +728,26 @@ def main(minimal_file=True):
                                                     niter, parameters['image_name'],
                                                     cat[ic], M_input[iM], redshift,
                                                     rmsfits_end = parameters['rmsfits_end'],
-                                                    roundnum = ir)
-                            # finished looping over bands (created galaxies/sextracted)
-                            
+                                                    roundnum = ir, 
+                                                    do_segmentation=do_segmentation)
+                                print('.',end='')
+                            print('.')
                             # Find the number of sources for the different categories
                             # of detection statuses.
                             identified_aux, blended_f1_aux, blended_f2_aux,\
                                 blended_b_aux, blended_l_aux,\
                                 not_indentified_sn_aux, not_indentified_aux,\
-                                nout_c, nout_d = blending.main(parameters['path_to_results'],
-                                                          niter, ir, 
-                                                          parameters['detection_band'],
-                                                          cat[ic], M_input[iM], 
-                                                          Magnitude, redshift,
-                                                          xpos, ypos, xpos_old_cat,
-                                                          ypos_old_cat, segm_maps_old,
-                                                          m_old_cat, f_old_cat,
-                                                          id_old_cat, m[0],
-                                                          parameters['zeropoints'],
-                                                          parameters['bands'],
-                                                          parameters['min_sn'],
-                                                          parameters['dropouts'],
-                                                          margin,
-                                                          m_output, fwg)
+                                nout_c, nout_d, id_nmbr = blending.main(
+                                    parameters['path_to_results'],
+                                    niter, ir, parameters['detection_band'],
+                                    cat[ic], M_input[iM], Magnitude, beta, redshift,
+                                    xpos, ypos, xpos_old_cat, ypos_old_cat, 
+                                    segm_maps_old, m_old_cat, f_old_cat,
+                                    id_old_cat, m[ibmain],
+                                    parameters['zeropoints'], parameters['bands'],
+                                    parameters['min_sn'], parameters['dropouts'],
+                                    parameters['droptype'], margin, m_output, 
+                                    fwg, parameters['detection_band_combination'])
 
                             # Find the input magnitude bin of m_in and add the
                             # number of sources in each detection status for each bin.
@@ -591,7 +757,7 @@ def main(minimal_file=True):
                                 # add them to the respective counter. 
                                 if ((Magnitude > (M_input[v]- 0.5 * mbinsize)) and
                                     (Magnitude <= (M_input[v] + 0.5 * mbinsize))):
-                                    if v != iM: warnings.warn("Hmmmmmmmmm????????????")
+                                    if v != iM: warnings.warn("Something is wrong, v and iM should be equal")
                                     total[v] = total[v] + ninject 
                                     identified[v] = identified[v] + identified_aux
                                     blended_f1[v] = blended_f1[v] + blended_f1_aux
@@ -606,7 +772,7 @@ def main(minimal_file=True):
                                     drops[v] = drops[v] + np.sum(nout_d)
                                     nout[:,v] = nout[:,v] + nout_c
                                     dout[:,v] = dout[:,v] + nout_d
-                            print('      round %d/%d, inject %d, detect %d, dropout %d'%
+                            print('      round %d/%d, inject %d, detect %d, dropout %d (in magbins)'%
                                   (ir+1,nrounds, ninject, np.sum(nout_c),np.sum(nout_d)))
                             #pdb.set_trace()
                             if minimal_file is True:
@@ -614,18 +780,26 @@ def main(minimal_file=True):
                                 os.remove(parameters['path_to_results'] + 
                                     'Results/SegmentationMaps/Segmentation_maps_i' +
                                     '%d.%d'%(niter,ir)+ '_' + 
-                                    parameters['detection_band'] + '.fits')                   
-                                for ib in range(parameters['n_bands']):
-                                    os.remove(parameters['path_to_results'] +
-                                        'Results/Dropouts/source_' +cat[ic] + 
-                                        '_mag%.1f'%M_input[iM] + 
-                                        '_z%.1f'%redshift +'_i' + 
-                                        str(niter) + '.' + str(ir) + '_' + 
-                                        parameters['bands'][ib] + '.cat')
-                                                                          
+                                    parameters['detection_band'] + '.fits') 
+
+                                # for ib in range(parameters['n_bands']):
+                                #     os.remove(parameters['path_to_results'] +
+                                #         'Results/Dropouts/source_' +cat[ic] + 
+                                #         '_mag%.1f'%M_input[iM] + 
+                                #         '_z%.1f'%redshift +'_i' + 
+                                #         str(niter) + '.' + str(ir) + '_' + 
+                                #         parameters['bands'][ib] + '_cat.fits')
+                            #keep info of injected and sextracted galaxies
+                            for ib in range(parameters['n_bands']):
+                                delete_id_fits('%sResults/Dropouts/source_%s_mag%.1f_z%.1f_i%d.%d_%s_cat.fits'%
+                                    (parameters['path_to_results'],cat[ic],
+                                     M_input[iM],redshift,niter,ir,
+                                     parameters['bands'][ib]), 
+                                    id_nmbr, id_keep = True)
                         #finished looping over rounds
                         if totinject != ngals[iM]: pdb.set_trace()
                     #finished looping over iterations
+                    #pdb.set_trace()    
                 #finished looping over input Magnitude bins
                 fwg.close()
                 
@@ -677,14 +851,14 @@ def main(minimal_file=True):
         pickle.dump(output_dict, outpicklefile)
         outpicklefile.close()
         
-        # Generate plots.
+        #Generate plots.
         plot_completeness.main(parameters['path_to_results'],
-                               parameters['LF_shape'],
-                               M_input, parameters['min_z'],
-                               parameters['max_z'], parameters['z_bins'],
-                               cat[ic], total_completeness, 
-                               total_dropouts)
+                                parameters['LF_shape'],
+                                M_input, parameters['min_z'],
+                                parameters['max_z'], parameters['z_bins'],
+                                cat[ic], total_completeness, 
+                                total_dropouts)
 
     #finished looping over field
 if __name__ == "__main__":
-    main()
+    main(minimal_file=True)

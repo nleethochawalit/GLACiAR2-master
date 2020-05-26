@@ -3,8 +3,8 @@
 Overview 
 ----------
 
-``GLACiAR`` is an open-source python tool for simulations of source recovery and completeness in galaxy surveys.
-For a more detailed explanation, please revise the paper https://arxiv.org/abs/1805.08985 .
+``GLACiAR2`` is an open-source python tool for simulations of source recovery and completeness in galaxy surveys.
+It's developed from GLACiAR (https://arxiv.org/abs/1805.08985).
 
 Requirements
 ----------

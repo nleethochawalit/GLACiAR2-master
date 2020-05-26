@@ -136,7 +136,7 @@ def makeSersic(n0, bn0, re, ell, inc_angle, size_galaxy):
 def galaxies_positions(image_data, nsources, size, re):
     """
     Provides the position in the image for the simulated galaxies.
-
+    It will not placed on pixels with values = 0
     Args:
         image_data (float array) = Science image. It corresponds to
                                    an array with the counts value for
@@ -194,7 +194,8 @@ def spectrum(a, x, b, redshift):
     return f
 
 
-def write_spectrum(detectionband, mag, beta, redshift,absmag=False,refwl=1600):
+def write_spectrum(mag, beta, redshift,absmag=False,refwl=1600,
+                   detectionband = ''):
     """
     Saves the spectrum (spec.fits) of the simulated Lyman break galaxy
     so the magnitudes expected in each filter can be calculated.
@@ -202,7 +203,7 @@ def write_spectrum(detectionband, mag, beta, redshift,absmag=False,refwl=1600):
     If absmag = True: take (Mag, beta, redshift), returned observed flambda
     Observed flambda has zero point magnitude = 0
     Args:
-        detectionband (str) = name of the detection band  
+        
         mag (float) = Input mangitude of the artificial source in the 
                       detection band. If absmag = True, it should be absolute
                       magtitude. Otherwise, it's apparent magnitude.
@@ -211,6 +212,7 @@ def write_spectrum(detectionband, mag, beta, redshift,absmag=False,refwl=1600):
         absmag (boolean) = Whether the magnitude is absolute magnitude
         refwl (float) = Must provide if absmag is True. Wavelength for absmag 
                         reference in angstrom.
+        detectionband (str) = Must provide if absmag is False. Name of the detection band.
     """
     wavelength = np.arange(0, 30000, 1.)
     if absmag:
@@ -243,6 +245,7 @@ def write_spectrum(detectionband, mag, beta, redshift,absmag=False,refwl=1600):
 
 def mag_band(name_band):
     """
+    Calculate magnitude based on spectrum
     Args
         name_band (string) = name of the band for which the magnitude of the
                              simulated galaxy is calculated.
@@ -314,45 +317,144 @@ def calphi(shapefn,redshift, slope=2):
         
     return phi
 
-def calphi_marr(mbins, shapefn, redshift, msample = 5, minngal = 100, 
+def calphi_marr(Mbins, shapefn, redshift, msample = 5, minngal = 100, 
                 slope = 2, expbase = 2):
     """
-    calculate relative number of galaxies with input magnitude marr 
+    Calculate relative number of galaxies with input magnitude marr 
     (apparent magnitude). 
     Normalized so that each bin has at least minngal galaxy.
-    Also returned a set of random magnitudes for each bins. The magnitudes are
+    Also return a set of random magnitudes for each bins. The magnitudes are
     according to the LF
     
     --input--
-    mbins : intrinsic absolute magnitude bins 
+    Mbins (float array): intrinsic absolute magnitude bins 
     shapefn (string) : current choices are 
-        'flat'     - return array of 1s
-        'shechter' - must provide Files/LF_Schechter_params.txt and redshift
-        'linear'   - must provide slope, Default = 2
-        'exp'      - must provide expbase, Default = 2
+        'flat'          - return array of minngals
+        'linear'        - must provide slope, Default = 2
+        'exp'           - must provide expbase, Default = 2
+        'shechter'      - must provide Files/LF_Schechter_params.txt and redshift
+                          This will give a normal Schechter function shape.
+                          Caution that there will be millions of galaxies at fainter bins
+        'schechter_flat'- must provide Files/LF_Schechter_params.txt and redshift
+                          This will make underlying distribution in each bin
+                          Schecter. But the number of galaxies in each bin is
+                          flat = minngal.
+        
     minngal (int) : minimum number of galaxies in each bin, Default = 100
     msample (int) : number of sampling in each magnitude bin. This is usually
-                    the number of iterations. (For each iteration j and each 
-                    mbins(i), the simulated galaxies will have one
-                    magnitude m_j (within the bin of mbins(i), then 
-                    phiarr(mbins(i)) galaxies will be injected into the image)
+                    the number of iterations. For each iteration j at
+                    Mbins(i), the simulated galaxies will have one
+                    magnitude m_j (within the bin of Mbins(i)) 
+                    In that iteration, phiarr(Mbins(i)) galaxies 
+                    will be injected into the image.
+    --output--
+    phiarr (float array): array of size Mbins, indicating number of galaxies
+                          to be injected in each iteration
+    Marr (a list of len(Mbins) np.array's):
+                      Each array contains msample absolute magnitude of 
+                      galaxies in the magnitude bin. The magnitudes were sampled
+                      according to the input shapefn.
+    refwl (float): usually returned None but when LF is Schecter, it'll return
+                   the wavelength specified in the Files/LF_Schechter_params.txt
     """
     if shapefn.lower() == 'flat': 
-        phiarr, marr = flat(mbins, minngal, msample)
+        phiarr, Marr = flat(Mbins, minngal, msample)
         refwl = None
         
     if shapefn.lower() == 'linear':
-        phiarr, marr = linear(mbins, minngal, msample, slope)
+        phiarr, Marr = linear(Mbins, minngal, msample, slope)
         refwl = None
         
     if shapefn.lower() == 'schechter':
-        phiarr, marr, refwl = schechter(mbins, redshift, minngal, msample)
+        phiarr, Marr, refwl = schechter(Mbins, redshift, minngal, msample)
+    
+    if shapefn.lower() == 'schechter_flat':
+        phiarr, Marr, refwl = schechter_flat(Mbins, redshift, minngal, msample)
         
     if shapefn.lower() == 'exp':
-        phiarr, marr = exponential(mbins, minngal, msample, expbase)
+        phiarr, Marr = exponential(Mbins, minngal, msample, expbase)
         refwl = None
         
-    return phiarr, marr, refwl
+    return phiarr, Marr, refwl
+
+def draw_schechter(marr,msample,mstar,alpha,mzero):
+    #Draw msample magnitudes in each bin in marr with Schechter LF with
+    #the rejection method    
+    halfmbin = 0.5*(marr[1]-marr[0])    
+    mlist_out = []
+    for i,m in enumerate(marr):
+        mlow = m-halfmbin
+        mhigh = m+halfmbin
+        
+        #find the maximum prob in that magnitude bin
+        #if alpha is less than -1, then schechter is strictly increasing fn
+        #if alpha is greater than -1, then schechter has negative slope if mag
+        #nitude is greater(fainter) than mstar-2.5*np.log10(alpha+1)
+        pdfvals = schechter_func(np.array([mhigh,mlow]),mstar,alpha)
+        maxpdf = np.amax(pdfvals)
+        minpdf = np.amin(pdfvals)
+        if (alpha > -1):
+            if (mhigh > mzero) and (mlow < mzero):
+                maxpdf = schechter_func(mzero,mstar,alpha)
+                
+        submarr = np.zeros(msample)
+        for j in range(msample):
+            while submarr[j] == 0:
+                rand_xy = np.random.uniform(low=[mlow,minpdf],high=[mhigh,maxpdf])
+                fval = schechter_func(rand_xy[0],mstar,alpha)
+                if rand_xy[1] < fval:
+                    submarr[j] = rand_xy[0]
+        mlist_out.append(submarr)
+    return mlist_out
+
+def schechter_flat(marr,redshift,min_ngal,msample):
+    """
+    The Schechter function
+    Calculate number of galaxies in each bin, according to Schechter function
+    at the specified redshift. The function is specified in 
+    Files/LF_Schechter_params.txt
+    
+    The function is normalized such each bin has min_ngal galaxies.
+    
+    --- INPUT ---
+    marr (float array): array of ABSOLUTE magnitude bins. Each bin is centered at 
+                        specified M with a binsize of M[1]-M[0]
+    redshift (float): the code will take the parameters in LF_Schechter_params
+                      where the redshift is the closest to this input z
+    min_ngal (float): minimum number of galaxies in each mag bin
+    msample (int)   : number of sampling in each magnitude bin.
+    --- OUTPUT ---
+    ngals (array) = array of number of galaxies in each magnitude bin
+    mlist_out (list) = list of np.array. Each array contains msample absolute 
+                        magnitude of galaxies in the magnitude bin
+    refwl (float) = reference wavelength for the magnitude
+    """
+    # Read parameters of the Schechter function
+    f = open('Files/LF_Schechter_params.txt')
+    k = f.readlines()
+    f.close()
+    zmed   = np.array([float(line.split()[0]) for line in k[1:]])
+    mstar  = np.array([float(line.split()[3]) for line in k[1:]])
+    alpha  = np.array([float(line.split()[4]) for line in k[1:]])
+    refwl  = np.array([float(line.split()[6]) for line in k[1:]]) 
+        
+    #picking the value closest to the redshift
+    wmin = np.argmin(np.abs(zmed-redshift))
+    mstar = mstar[wmin]
+    alpha = alpha[wmin]
+    refwl = refwl[wmin]
+    if alpha > -1: 
+        mzero = mstar-2.5*np.log10(alpha+1)
+    else:
+        mzero = None
+    
+    #calculate number of galaxies
+    ngals = np.zeros(len(marr),dtype=int)+min_ngal
+    
+    #randomly draw magnitude values from Schechter function using the 
+    #rejection method    
+    mlist_out = draw_schechter(marr,msample,mstar,alpha,mzero)
+    return ngals,mlist_out,refwl
 
 def schechter(marr,redshift,min_ngal,msample):
     """
@@ -407,30 +509,8 @@ def schechter(marr,redshift,min_ngal,msample):
     
     #randomly draw magnitude values from Schechter function using the 
     #rejection method    
-    mlist_out = []
-    for i,m in enumerate(marr):
-        mlow = m-halfmbin
-        mhigh = m+halfmbin
-        
-        #find the maximum prob in that magnitude bin
-        #if alpha is less than -1, then schechter is strictly increasing fn
-        #if alpha is greater than -1, then schechter has negative slope if mag
-        #nitude is greater(fainter) than mstar-2.5*np.log10(alpha+1)
-        pdfvals = schechter_func(np.array([mhigh,mlow]),mstar,alpha)
-        maxpdf = np.amax(pdfvals)
-        minpdf = np.amin(pdfvals)
-        if (alpha > -1):
-            if (mhigh > mzero) and (mlow < mzero):
-                maxpdf = schechter_func(mzero,mstar,alpha)
-                
-        submarr = np.zeros(msample)
-        for j in range(msample):
-            while submarr[j] == 0:
-                rand_xy = np.random.uniform(low=[mlow,minpdf],high=[mhigh,maxpdf])
-                fval = schechter_func(rand_xy[0],mstar,alpha)
-                if rand_xy[1] < fval:
-                    submarr[j] = rand_xy[0]
-        mlist_out.append(submarr)
+    mlist_out = draw_schechter(marr,msample,mstar,alpha,mzero)
+    
     return ngals,mlist_out,refwl
 
 

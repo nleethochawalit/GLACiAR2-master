@@ -1,13 +1,11 @@
 import numpy as np
-import pickle
 import dropouts
-import os
 from astropy.io import fits
 import pdb
-
 def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min, 
-         redshift, xpos, ypos, xpos_oc, ypos_oc, segm_science, m_oc, f_oc, 
-         id_oc, input_mag, zp, bands, min_sn, dp, margin, magbins, fwg):
+         beta, redshift, xpos, ypos, xpos_oc, ypos_oc, segm_science, m_oc, f_oc, 
+         id_oc, input_mag, zp, bands, min_sn, dp, droptype, margin, magbins, 
+         fwg,detection_band_combination):
     """
     Uses the information from the new and old catalogs and segmentation
     maps to find the new sources and label them according to their
@@ -22,6 +20,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
         Mbin (float) = Input absolute magnitude bin
         Min (float) = Initial input absolute magnitude for the simulated galaxy 
                      (at UV wavelenght).
+        beta (float) = Initial input beta for the simulatted galaxy.        
         redshift (float) = Redshift for the simulated galaxy.
         xpos (int array) = Position of the simulated galaxy in the x axis.
         ypos (int array) = Position of the simulated galaxy in the y axis.
@@ -52,6 +51,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
         dp (boolean) = Boolean that indicates whether the user requires to run
                        a dropout selection. Given in the input parameters file.
                        If True, the dropouts.py module will be used.
+        droptype (string) = type of dropout. Choices are 'borg', 'hlf', 'candels'
         margin (int) = Number of pixels from centre in which search is performed.
         magbins (float array) = Array of the output magnitude bins.
                          The sizes of the bins must be equal. This is used to
@@ -82,52 +82,49 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                               observed in the magbins at the input_mag                            
     """
     # Open segmentation maps from simulated images, save the data
+    
     segm_new_cat = fits.open('%sResults/SegmentationMaps/Segmentation_maps_i%d.%d_%s.fits'%(
-            path_to_results,niter,roundnum,detection_band) , ignore_missing_end=True)
+            path_to_results,niter,roundnum,detection_band) , 
+            ignore_missing_end=True)
+        
     segm_sim = segm_new_cat[0].data  # Data from new images.
     segm_new_cat.close()
 
-
-    # Catalog with the identified sources from the simulated images.
-    f = open('%sResults/Dropouts/source_%s_mag%.1f_z%.1f_i%d.%d_%s'
-             '.cat'%(path_to_results,cat,Mbin,redshift,niter,roundnum,detection_band))
-    k = f.readlines()
-    f.close()
-
+    # Main catalog with the identified sources from the simulated images.
+    if detection_band =='det':
+        selband = detection_band_combination[0]
+        locband =  bands.index(selband)
+    else:
+        selband = detection_band
+        locband =  bands.index(selband)
+        if locband != 0:breakpoint()
+        
     # Information from SExtractor for the new sources (science image +
     # simulated galaxies).
-    id_mgal = [int(line.split()[0]) for line in k[27:]]  # ID
-    fauto_gal = [float(line.split()[25]) for line in k[27:]] # auto flux
-    f_gal = [float(line.split()[1]) for line in k[27:]]  # Isophotal flux
-    ef_gal = [float(line.split()[2]) for line in k[27:]]  # RMS error for flux
-    m_gal = [float(line.split()[27]) for line in k[27:]]  # AUTO magnitude
-    merr_gal = [float(line.split()[28]) for line in k[27:]]  # AUTO magnitude
-    sn_mgal = np.array(np.array(f_gal)/np.array(ef_gal))  # RMS error for mag
-    xpos_nc = [float(line.split()[32]) for line in k[27:]]  # Position in x
-    ypos_nc = [float(line.split()[31]) for line in k[27:]]  # Position in y
-    #radius = [float(line.split()[42]) for line in k[27:]]  # Radii
-
+    f_hdu = fits.open('%sResults/Dropouts/source_%s_mag%.1f_z%.1f_i%d.%d_%s'
+                      '_cat.fits'%(path_to_results,cat,Mbin,redshift,
+                                   niter,roundnum,selband),
+                      ignore_missing_end=True)
+                
+    id_mgal = f_hdu[1].data['NUMBER']  # ID
+    fauto_gal = f_hdu[1].data['FLUX_AUTO'] # auto flux
+    m_gal = f_hdu[1].data['MAG_AUTO']  # AUTO magnitude
+    f_gal = f_hdu[1].data['FLUX_ISO']  # Isophotal flux
+    ef_gal = f_hdu[1].data['FLUXERR_ISO'] # RMS error for flux
+    sn_mgal = np.divide(f_gal, ef_gal, out=np.zeros_like(f_gal), where=ef_gal!=0) # RMS error for mag
+    radius50 = f_hdu[1].data['FLUX_RADIUS'][:,0]  # Radii
+    radius90 = f_hdu[1].data['FLUX_RADIUS'][:,1]  # Radii
+    f_hdu.close()
+    
     # Convert the previous arrays into np.arrays
     xpos = np.array(xpos).astype(int)
     ypos = np.array(ypos).astype(int)
-    xpos_oc = np.array(xpos_oc)
-    ypos_oc = np.array(ypos_oc)
-    xpos_nc = np.array(xpos_nc)
-    ypos_nc = np.array(ypos_nc)
-    m_oc = np.array(m_oc)
-    f_oc = np.array(f_oc)
-    id_oc = np.array(id_oc)
-    id_mgal = np.array(id_mgal)
-    m_gal = np.array(m_gal)
-    merr_gal = np.array(merr_gal)
-    fauto_gal = np.array(fauto_gal)
-    
 
     # Array of the status code, initialized with -999 
-    status = np.zeros(len(xpos),dtype=int) -999
+    status = np.zeros(len(xpos),dtype=int) -99
 
     # Array of the ID of the artificial galaxy, initialized with -999 
-    id_nmbr = np.zeros(len(xpos),dtype=int) - 999
+    id_nmbr = np.zeros(len(xpos),dtype=int) - 99
   
     # Open a text file (.reg) with the formatting to be used as region file on
     # DS9. It shows location where the artificial source was originally placed.
@@ -225,9 +222,10 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                         # if the (the overlap of the new source
                         # is >25% its original size). We consider this as if the
                         # artificial source was blended with a large object.
-                        if ((len(w2) > 0.25*idsimgal) or 
-                            (np.abs((fauto_gal[id_mgal == id_nmbr[i]]/ \
-                                    (10**((zp[0]-input_mag)/2.5)))-1.) > 0.25)):
+                        # if ((len(w2) > 0.25*idsimgal) or 
+                        #     (np.abs((fauto_gal[id_mgal == id_nmbr[i]]/ \
+                        #             (10**((zp[0]-input_mag)/2.5)))-1.) > 0.25)):
+                        if (len(w2) > 0.25*idsimgal):
                             status[i] = -2  #blended with a large object.
                             # Write the region file for the artificial sources
                             # with status=-2 in colour red.
@@ -271,73 +269,107 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
     # bands measured by SExtractor for the new sources.
     mag_iso = np.zeros((len(id_mgal), len(bands)))
     mag_auto = np.zeros((len(id_mgal), len(bands)))
+    mag_aper1 = np.zeros((len(id_mgal), len(bands)))
+    mag_aper2 = np.zeros((len(id_mgal), len(bands))) 
+    
     magerr_auto = np.zeros((len(id_mgal), len(bands)))
-    sn = np.zeros((len(id_mgal), len(bands)))
+    
+    sn_iso = np.zeros((len(id_mgal), len(bands)))
+    sn_aper1 = np.zeros((len(id_mgal), len(bands)))
+    sn_aper2 = np.zeros((len(id_mgal), len(bands)))
+ 
+      
     # Loop for the number of bands used in the simulation.
     for j in range(len(bands)):
         # Open the catalog with the identified sources from the simulated
         # images (science + artificial sources) for each band.
-        f1 = open(path_to_results + 'Results/Dropouts/source_%s_mag%.1f_'
-                  'z%.1f_i%d.%d''_%s.cat'%(cat,Mbin,redshift,niter,
-                                           roundnum,bands[j]))
-        k1 = f1.readlines()
-        f1.close()
+    
+        f1 = fits.open('%sResults/Dropouts/source_%s_mag%.1f_z%.1f_i%d.%d''_%s_cat.fits'%
+                       (path_to_results,cat,Mbin,redshift,niter,
+                        roundnum,bands[j]),ignore_missing_end=True)
 
-        # Save the information on the ISO mag, AUTO mag, and S/N for each band.
-        mag_iso[:, j] = [float(line.split()[3]) for line in k1[27:]]
-        mag_auto[:, j] = [float(line.split()[27]) for line in k1[27:]]
-        magerr_auto[:,j] = [float(line.split()[28]) for line in k1[27:]]
-        sn[:, j] = [float(line.split()[1])/float(line.split()[2]) for
-                    line in k1[27:]]
+        # Save the information on the MAG and S/N for each band 
+        # to be used for dropout selection.
+        mag_iso[:, j] = f1[1].data['MAG_ISO'] 
+        mag_auto[:,j] = f1[1].data['MAG_AUTO'] 
+        mag_aper1[:,j] = f1[1].data['MAG_APER'][:,0]
+        mag_aper2[:,j] = f1[1].data['MAG_APER'][:,1]
+        magerr_auto[:,j] = f1[1].data['MAGERR_AUTO'] 
+        sn_iso[:,j] = np.divide(f1[1].data['FLUX_ISO'],
+                                f1[1].data['FLUXERR_ISO'],
+                                out = np.zeros_like(f1[1].data['FLUX_ISO']),
+                                where = f1[1].data['FLUXERR_ISO']!=0)
+        sn_aper1[:,j] = np.divide(f1[1].data['FLUX_APER'][:,0],
+                                f1[1].data['FLUXERR_APER'][:,0],
+                                out = np.zeros_like(f1[1].data['FLUX_APER'][:,0]),
+                                where = f1[1].data['FLUXERR_APER'][:,0]!=0)
+        sn_aper2[:,j] = np.divide(f1[1].data['FLUX_APER'][:,1],
+                                f1[1].data['FLUXERR_APER'][:,1],
+                                out = np.zeros_like(f1[1].data['FLUX_APER'][:,1]),
+                                where = f1[1].data['FLUXERR_APER'][:,1]!=0)        
+        f1.close()
         
     # Save the data only for sources identified as artificial sources.
     mag_iso = mag_iso[id_nmbr.astype(int)-1, :]
     mag_auto = mag_auto[id_nmbr.astype(int)-1, :]
+    mag_aper1 = mag_aper1[id_nmbr.astype(int)-1, :]
+    mag_aper2 = mag_aper2[id_nmbr.astype(int)-1, :]
     magerr_auto = magerr_auto[id_nmbr.astype(int)-1, :]
-    sn = sn[id_nmbr.astype(int)-1, :]
+    sn_iso = sn_iso[id_nmbr.astype(int)-1, :]
+    sn_aper1 = sn_aper1[id_nmbr.astype(int)-1, :]
+    sn_aper2 = sn_aper2[id_nmbr.astype(int)-1, :]
+    radius50 = radius50[id_nmbr.astype(int)-1]
+    radius90 = radius90[id_nmbr.astype(int)-1]
     
     wnondetect = np.nonzero(status == 4)[0]
     if len(wnondetect) > 0 :
-        mag_iso[wnondetect,:] = -999
-        mag_auto[wnondetect,:] = -999
-        magerr_auto[wnondetect,:] = -999
-        sn[wnondetect,:] = -999
-        
+        mag_iso[wnondetect,:] = -99
+        mag_auto[wnondetect,:] = -99
+        mag_aper1[wnondetect,:] = -99
+        mag_aper2[wnondetect,:] = -99
+        magerr_auto[wnondetect,:] = -99
+        sn_iso[wnondetect,:] = -99
+        sn_aper1[wnondetect,:] = -99
+        sn_aper2[wnondetect,:] = -99
+        radius50[wnondetect] = -99
+        radius90[wnondetect] = -99
+    
     #determine dropouts 
     # Run dropout module if dropout parameter is set to True.
     if dp is True:
-        drops = dropouts.main(mag_iso, mag_auto, sn, status, magbins, redshift)
+        drops = dropouts.main(mag_iso, mag_auto, mag_aper1, mag_aper2,
+                              sn_iso, sn_aper1, sn_aper2, status, magbins, 
+                              redshift, droptype)
     else:
         drops = np.zeros(len(id_nmbr))-99
         
     #writing output to fwg file for each simulated galaxies
+    
     for i in range(len(xpos)):
-         # Line with information of the artificial source.
-         if status[i] > -4:
-             if m_gal[id_mgal == id_nmbr[i]] != mag_auto[i,0]:
-                 print('something is wrong')
-                 pdb.set_trace()
-                 
-         line = ('%.1f\t%.2f\t%d\t%d\t%d\t%.2f\t%.2f\t%.2f\t%d\t%d'
-                 %(Mbin, Min, niter, roundnum, id_nmbr[i],input_mag,
-                   mag_auto[i,0],magerr_auto[i,0],status[i], drops[i]) + 
-                 ''.join(['\t%.2f\t%.2f'%(x,y) for x,y in zip(mag_iso[i,:],sn[i,:])]) +
-                 '\n')
-                                          
-         # Write line in the file 'RecoveredGalaxies_cat_z#.cat'
-         fwg.writelines(line)
+         # Line with information of the artificial source.          
+        line = ('%.1f\t%.2f\t%d\t%d\t%d\t%.2f\t%.2f\t%d\t%d'
+                %(Mbin, Min, niter, roundnum, id_nmbr[i],beta, input_mag,
+                  status[i], drops[i])+ 
+                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_auto[i,:],magerr_auto[i,:])])+
+                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_iso[i,:],sn_iso[i,:])]) +
+                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_aper1[i,:],sn_aper1[i,:])]) +
+                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_aper2[i,:],sn_aper2[i,:])]) +
+                '\t%.3f\t%.3f\n'%(radius50[i],radius90[i]))
+                                         
+        # Write line in the file 'RecoveredGalaxies_cat_z#.cat'
+        fwg.writelines(line)
                     
     mbinsize = magbins[1]-magbins[0]
 
     nout_c = np.zeros(len(magbins))
     nout_d = np.zeros(len(magbins))
     for i in range(len(magbins)):
-        cwin = np.nonzero((mag_auto[:,0] >= magbins[i]-mbinsize*0.5) &
-                         (mag_auto[:,0] < magbins[i]+mbinsize*0.5) &
+        cwin = np.nonzero((mag_auto[:,locband] >= magbins[i]-mbinsize*0.5) &
+                         (mag_auto[:,locband] < magbins[i]+mbinsize*0.5) &
                          (status >= 0))[0]
-        dwin = np.nonzero((mag_auto[:,0] >= magbins[i]-mbinsize*0.5) &
-                         (mag_auto[:,0] < magbins[i]+mbinsize*0.5) &
-                         (status >= 0) & (drops==1))[0]
+        dwin = np.nonzero((mag_auto[:,locband] >= magbins[i]-mbinsize*0.5) &
+                         (mag_auto[:,locband] < magbins[i]+mbinsize*0.5) &
+                         (status >= 0) & (drops>0))[0]
         
         nout_c[i] = len(cwin)
         nout_d[i] = len(dwin)
@@ -352,7 +384,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
     
     # Return number of sources for each of the following categories.
     return identified, blended_f1, blended_f2, blended_b, blended_l, \
-        not_indentified_sn, not_indentified, nout_c, nout_d
+        not_indentified_sn, not_indentified, nout_c, nout_d, id_nmbr
 
 if __name__ == "__main__":
     main()

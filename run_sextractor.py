@@ -5,7 +5,6 @@ Runs SExtractor on the images with the simulated galaxies.
 import write_conf_files
 from subprocess import check_call
 from subprocess import PIPE
-
 def science_image(name_band, detection_band, zp, g, path_to_im, 
                   path_to_results, image_name, cat, imfits_end ='_v1_drz.fits', 
                   rmsfits_end='_v1_rms_scl.fits'):
@@ -13,7 +12,7 @@ def science_image(name_band, detection_band, zp, g, path_to_im,
     Runs SExtractor on the science image with the parameters given by the user
     and creates a catalog for the sources found in the image.
     Args:
-        name_band (string) = name of the band in which the image is taken.
+        name_band (string array) = name of the band in which the image is taken.
         detection_band (string) = name of the detection band given in the
                                   parameters file.
         zp (float) = Zeropoint value for the respective band from the
@@ -28,25 +27,34 @@ def science_image(name_band, detection_band, zp, g, path_to_im,
         cat (string) = Name of the field for which the simulation is being run.
     """
     # New parameters files are created for SExtractor.
+    # If detection band is 'det', make sure it makes segmentation image for the det band
+    do_segment_on_first = False
+    if detection_band == 'det': 
+        do_segment_on_first = True
     for i in range(len(name_band)):
         #write sextractor parameter file for the band
-        write_conf_files.main(name_band[i], detection_band, zp[i], g[i],
-        	path_to_im, path_to_results, 0, image_name, cat, rmsfits_end)
+        do_segmentation=False
+        if i==0 and do_segment_on_first: do_segmentation=True
+        
+        write_conf_files.main(name_band[i], detection_band, zp[i], 
+                              g[i],	path_to_im, path_to_results, 0, 
+                              image_name, cat, rmsfits_end,
+                              do_segmentation=do_segmentation)
         # If the band SExtractor is running on is not the detection band,
         # run in dual mode with the detection band as reference.
         # NL changed to dual mode in either case cause SExtractor single mode
         # gives different number of detections from dual mode!
-        if name_band[i] == detection_band: 
+        if (name_band[i] == detection_band or do_segmentation): 
             p = check_call(['source-extractor ' + path_to_im + image_name + cat +'_' +
-                        name_band[i] + imfits_end+',' 
+                        detection_band + imfits_end+',' 
                         + path_to_im + image_name + cat +'_' +
                         name_band[i] + imfits_end+' -c SExtractor_files/' +
                         'parameters_' + name_band[i] +
                         '.sex -CHECKIMAGE_NAME ' + path_to_results +
-                        'SciImages/sources_' + cat + '_' + name_band[i] +
+                        'SciImages/sources_' + cat + '_' + detection_band +
                         '_segm.fits -CATALOG_NAME '+ path_to_results +
                         'SciImages/sources_' + cat + '_' + name_band[i] +
-                        '.cat'], bufsize=4096, stdin=PIPE, stdout=PIPE,
+                        '_cat.fits'], bufsize=4096, stdin=PIPE, stdout=PIPE,
                         close_fds=True, shell=True)
         else:
             p = check_call(['source-extractor ' + path_to_im + image_name + cat+'_' +
@@ -57,13 +65,15 @@ def science_image(name_band, detection_band, zp, g, path_to_im,
                         path_to_results + 'SciImages/sources_' + cat + '_' +
                         name_band[i] + '_segm.fits -CATALOG_NAME ' +
                         path_to_results + 'SciImages/sources_' + cat + '_' +
-                        name_band[i]+'.cat -VERBOSE_TYPE QUIET'], 
+                        name_band[i]+'_cat.fits -VERBOSE_TYPE QUIET'], 
                         bufsize=4096, stdin=PIPE, stdout=PIPE,
                         close_fds=True, shell=True)
-
+        print(".", end = '')
+    print('')
+    
 def main(name_band, detection_band, zp, g, path_to_im, path_to_results, 
          niter, image_name, cat, m1, redshift, 
-         rmsfits_end = '_v1_rms_scl.fits', roundnum = 0):
+         rmsfits_end = '_v1_rms_scl.fits', roundnum = 0, do_segmentation=False):
     """
     Runs SExtractor on the new image containing the simulated galaxies
     with the parameters given by the user and creates a new catalog for
@@ -91,36 +101,22 @@ def main(name_band, detection_band, zp, g, path_to_im, path_to_results,
     # is run for each iteration. They are replaced in each iteration.
     write_conf_files.main(name_band, detection_band, zp, g, path_to_im, 
                           path_to_results, niter, image_name, cat, 
-                          rmsfits_end,roundnum=roundnum)
-    # If the band SExtractor is running on is the detection band, identify
+                          rmsfits_end,roundnum=roundnum,
+                          do_segmentation=do_segmentation)
     # identify the sources.
     # NL changed to dual mode cause SExtractor single and dual mode give 
     # different number of detections!
-    if name_band == detection_band:
-        p = check_call(['source-extractor ' + path_to_results + 'Results/images/'
-                        'sersic_sources_' + cat + detection_band + '.fits, '
+    p = check_call(['source-extractor ' + path_to_results + 'Results/images/'
+                        'sersic_sources_' + cat + '_' + detection_band + '.fits, '
                         + path_to_results + 'Results/images/sersic_sources_' 
-                        + cat + detection_band + '.fits -c '
-                        'SExtractor_files/parameters_' + detection_band +
+                        + cat + '_' + name_band + '.fits -c '
+                        'SExtractor_files/parameters_' + name_band +
                         '.sex -CATALOG_NAME ' + path_to_results + 
                         'Results/Dropouts/source_' + cat + '_mag%.1f'%(m1) + 
                         '_z%.1f'%(redshift) +'_i' + str(niter) + '.' + 
-                        str(roundnum) + '_' + detection_band + 
-                        '.cat -VERBOSE_TYPE QUIET'], 
+                        str(roundnum) + '_' + name_band + 
+                        '_cat.fits -VERBOSE_TYPE QUIET'], 
                        bufsize=4096, stdin=PIPE, stdout=PIPE, close_fds=True,
                        shell=True)
-    # If the band SExtractor is running on is not the detection band, run in
-    # dual mode with the detection band as reference.
-    else:
-        p = check_call(['source-extractor ' + path_to_results + 'Results/images/'
-                        'sersic_sources_' + cat + detection_band + '.fits,' +
-                        path_to_results + '/Results/images/sersic_sources_' + 
-                        cat + name_band + '.fits -c SExtractor_files/'
-                        'parameters_' + name_band + '.sex -CATALOG_NAME ' + 
-                        path_to_results + 'Results/Dropouts/source_' + cat + 
-                        '_mag%.1f'%(m1) +'_z%.1f'%(redshift) + '_i' + str(niter) + 
-                        '.' + str(roundnum) + '_' + name_band + 
-                        '.cat -VERBOSE_TYPE QUIET'],
-                        bufsize=4096, stdin=PIPE, stdout=PIPE,
-                        close_fds=True, shell=True)
+    
 
