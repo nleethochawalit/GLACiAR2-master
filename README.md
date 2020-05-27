@@ -33,28 +33,50 @@ Modify the parameters file 'parameters.yaml'.
 
 **Parameters files**
 
-- *n_galaxies:* Number of galaxies to place in each iteration (default = 100). Type = int.
-- *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude.(default = 100).
+- *n_galaxies:* Number of galaxies to place in each iteration. In each iteration, the galaxies will have the same spectrum but different light profiles, elipticities, inclinations. (default = 100). Type = int.
+- *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude bin. The magnitude for each iteration will be drawn based on the specified LF_shape. (default = 100).
 - *mag_bins:* The numbers of magnitude bins wanted. For a simulation run from m1 = 24.0 to m2 = 25.0 in steps of 0.2 magnitudes, there will be 6 bins (default = 20).
-- *min_mag:* Brightest magnitude of the simulated galaxies (default = 24.1).
-- *max_mag:* Faintest magnitude of the simulated galaxies (default = 27.9).
+- *min_mag:* Brightest observed magnitude of the simulated galaxies (default = 24.1).  see *extended_mag_bins_low/high*
+- *max_mag:* Faintest observed magnitude of the simulated galaxies (default = 27.9).
 - *z_bins:* The numbers of redshift bins wanted. For a simulation run from z1 = 9.5 to m2 = 10.5 in steps of 0.2 magnitudes, there will be 6 bins (default = 15).
-- *min_z:* Minimum redshift of the simulated galaxies (default = 9.0).
-- *max_z:* Maximum redshift of the simulated galaxies (default = 11.9).
+- *z_bins* Number of redshift bins (default = 16)
+- *min_z:* Minimum redshift of the simulated galaxies (default = 8.5).
+- *max_z:* Maximum redshift of the simulated galaxies (default = 9.0).
 - *n_bands:* How many filters the images have been observed in. If not specified, it will raise an error.
-- *detection_band:* This is the band in which the objects are identified. The images taken in this band will be where the simulated galaxies are first put in. If not specified, it will raise an error.
-- *bands:* Name of the bands. The detection band has to go first. If not specified, it will raise an error.
-- *zeropoints:* Zeropoint value corresponding to each band. The default value is 25 for each band.
-- *gain_values:* Gain values for each band. If not specified, it will raise an error. NL: Hmm I don't think it's used
+- *detection_band:* This is the band in which the objects are identified. It can be 'det' if the detection image is created by coadding different bands. If not specified, it will raise an error.
+- *bands:* Name of the bands. If detection_band is not 'det', the detection band has to go first. If not specified, it will raise an error.
+- *detection_band_combination:* Required if detection_band is 'det'. List of bands used in coadding to create the detection image.
+- *coadd_type:* 1 if simple coadd, 2 if noise-equalized coadd (e.g. Whitaker2019). Type = int. 
 - *list_of_fields:* Text file containing the name of the fields where the simulation is going to be run. If not specified, it will raise an error.
+- *zeropoints:* Zeropoint value corresponding to each band. The default value is 25 for each band. This will be put in SExtractor configuration file.
+- *gain_values:* Gain values for each band. If not specified, it will raise an error.  This will be put in SExtractor configuration file.
 - *R_eff:* Effective radius in kpc. It is the half light radius, i. e., the radius within half of the light emitted by the galaxy is enclosed (default = 1.075).
 - *size_pix:* Pixel scale in arcsecond for the images (default = 0.08).
-- *path_to_images:* Directory where the images are located. The program will create a folder inside it with the results. If not specified, it will raise an error.
-- *image_name:* Name of the images. They all should have the same name with the band written at the end. For example: "image_name+fieldname+'_'+band.fits"
-- *sersic_indices:* Sérsic indices for the galaxies (default = [1,4]).
-- *fraction_type_of_galaxies:* Fraction of galaxies corresponding the the Sérsic indices given (default = [0.5,0.5]). 
-- *min_sn:* Minimum signal to noise ratio n the detection band for a galaxy to be considered detected by SExtractor. (default = 8.0)
-- *dropouts:* Yes or no. Boolean that indicates whether the user wants to run a dropout selection (default = False).
+- *path_to_images:* Directory where the science images are located.
+- *path_to_results:* Directory where outputs will be placed. If not specified, it will raise an error.
+- *image_name:* Name of the images. They all should have the same name at the begining of the file. For example: borg_field1_f160w_drz_sci.fits = "image_name+fieldname+'_'+band+'_'+imfits_end"
+- *imfits_end:* See above for the file names
+- *rmsfits_end':* Name of the rms/weight image ending. For example: _drz_rms_sclv2.fits. The rms files will be used in Sextracting only. If the WEIGHT_TYPE in the sextractor configuration file is MAP_RMS then these images should be rms maps. If it is MAP_WEIGHT then these images should be weight maps.
+- *fixed_psf:* Name of the psf file if the images are psf matched. The file should be put in folder Files. Leave as blank if the images are not psf-match. In that case, each image will be convolved with psf_*band*.fits instead.
+- *R_eff:* Effective radius at redshift 6 in kpc (default = 1.075)
+- *beta_mean:* Mean of the UV slope. The injected galaxies will have spectra with slopes drawn from this mean.
+- *beta_sd:* Standard deviation of the UV slopes. 
+- *types_galaxies*: Number of different galaxy light profiles to be created per injection. (default = 2)
+- *sersic_indices:* Corresponding Sérsic indices for each *types_galaxies* (default = [1,4]).
+- *fraction_type_of_galaxies:* Fraction of galaxies corresponding the the Sérsic indices given (default = [0.5,0.5]). The sum must be 1.
+- *de_Vacouleur:* True of False. If true, when sersic indices == 4, the de Vacouleur profile will be used instead. (default = True).
+- *ibins:* number of inclinations. The galaxies will be created for ibins inclinations with values [0,1,..,ibins-1]*0.5pi/ibins
+- *ebins:* number of eccentricities. The galaxies will be created for ebins eccentricities ranging from 0 to 1.
+- *margin:* margin in arcsecond where a box of size 2*margin around the injected position will be searched for a source (sources) in the Sextracted file. The selected source will be the source with the closest position to the injected position within this search box.
+- *min_sn:* Minimum (isophotal) signal to noise ratio in the detection band (or the first band listed in detection_band_combination) for a galaxy to be considered detected. All detected galaxies that are not blended will be run through dropout selection. So if you have S/N criteria in the dropout selection, make sure that this min_sn is safely smaller than those in the dropout selection. (default = 3.0) 
+- *dropouts:* True or False. Boolean that indicates whether the user wants to run a dropout selection (default = False).
+- *droptype:* Type of dropout. See dropouts.py You can make your own!
+- *LF_shape:* Choices are 'flat', 'exp', 'linear', 'schechter_flat', and 'schechter'. Use Schecter with caution be cause millions galaxies will be created. We recommend schecter_flat instead where the *n_iterations* magnitudes will be drawn from Schecter function within that magnitude bin but each bin is normalized to *n_galaxies* galaxies.
+- *extended_mag_bins_low:* Number of bins to be extended from min_mag. Type = int. (default = 1)
+- *extended_mag_bins_high:* Number of bins to be extended from min_mag. Type = int. (default = 1)
+- *lin_slope:* Will be used if LF_shape is 'linear'
+- *exp_base:* Will be used if LF_shape is 'exp'
+- *n_inject_max:* When LF_shape is not 'flat', Each iteration can have more galaxies than n_galaxies. 
 
 Files
 ----------

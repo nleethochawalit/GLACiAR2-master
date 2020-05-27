@@ -33,9 +33,9 @@ if parameters['max_mag'] is None:
 if parameters['z_bins'] is None:
     parameters['z_bins'] = 16
 if parameters['min_z'] is None:
-    parameters['min_z'] = 7.0
+    parameters['min_z'] = 7.5
 if parameters['max_z'] is None:
-    parameters['max_z'] = 9.2
+    parameters['max_z'] = 9.0
 if parameters['ref_uv_wavelength'] is None:
     raise ValueError('Value of lambda required.')
 if parameters['n_bands'] is None:
@@ -50,24 +50,14 @@ if parameters['coadd_type'] is None:
     parameters['coadd_type'] = 1 #1 = simple coadd, 2 = noise-:equalized coadd
 if parameters['list_of_fields'] is None:
     raise ValueError('Input file with the fields.')
-if parameters['R_eff'] is None:
-    parameters['R_eff'] = 1.075 #kpc at redshift 6
-if parameters['beta_mean'] is None:
-    parameters['beta_mean'] = -2.2
-if parameters['beta_sd'] is None:
-    parameters['beta_sd'] = 0.4
+if (parameters['zeropoints'] is None or
+        len(parameters['zeropoints']) < parameters['n_bands']):
+    parameters['zeropoints'] = np.zeros(int(parameters['n_bands']))+25
+if (parameters['gain_values'] is None or
+        len(parameters['gain_values']) < parameters['n_bands']):
+    raise ValueError('Input gain values for each band.')
 if parameters['size_pix'] is None:
     parameters['size_pix'] = 0.08
-if parameters['margin'] is None:
-    parameters['margin'] = 0.3 #arcsecond. Margin for injection/recovery
-if parameters['fixed_psf'] is None:
-    parameters['fixed_psf'] = None
-if parameters['types_galaxies'] is None:
-    parameters['types_galaxies'] = 2
-if parameters['ibins'] is None:
-    parameters['ibins'] = 10
-if parameters['ebins'] is None:
-    parameters['ebins'] = 10
 if parameters['path_to_images'] is None:
     raise ValueError('Input the directory path.')
 if parameters['path_to_results'] is None:
@@ -78,16 +68,28 @@ if parameters['imfits_end'] is None:
     parameters['imfits_end'] = '_v1_drz.fits'
 if parameters['rmsfits_end'] is None:
     parameters['rmsfits_end'] = '_v1_rms_scl.fits'
+if parameters['fixed_psf'] is None:
+    parameters['fixed_psf'] = None
+if parameters['R_eff'] is None:
+    parameters['R_eff'] = 1.075 #kpc at redshift 6
+if parameters['beta_mean'] is None:
+    parameters['beta_mean'] = -2.2
+if parameters['beta_sd'] is None:
+    parameters['beta_sd'] = 0.4
+if parameters['types_galaxies'] is None:
+    parameters['types_galaxies'] = 2
+if parameters['ibins'] is None:
+    parameters['ibins'] = 10
+if parameters['ebins'] is None:
+    parameters['ebins'] = 10
 if parameters['sersic_indices'][1] is None:
     parameters['sersic_indices'][1] = 4
 if parameters['fraction_type_galaxies'] is None:
     parameters['fraction_type_galaxies'] = [0.5, 0.5]
-if (parameters['zeropoints'] is None or
-        len(parameters['zeropoints']) < parameters['n_bands']):
-    parameters['zeropoints'] = np.zeros(int(parameters['n_bands']))+25
-if (parameters['gain_values'] is None or
-        len(parameters['gain_values']) < parameters['n_bands']):
-    raise ValueError('Input gain values for each band.')
+if parameters['margin'] is None:
+    parameters['margin'] = 0.3 #arcsecond. Margin for injection/recovery
+if parameters['min_sn'] is None:
+    parameters['min_sn'] = 3
 if parameters['dropouts'] is None:
     parameters['dropouts'] = False
 if parameters['droptype'] is None: #bort, hlf, candels

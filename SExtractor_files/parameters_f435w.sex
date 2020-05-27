@@ -45,7 +45,7 @@ BACK_VALUE       0.
 #------------------------------ Check Image ----------------------------------
 
 CHECKIMAGE_TYPE   SEGMENTATION
-CHECKIMAGE_NAME /Users/nleethochawa/Documents/workspace_UVLF/Run_Glacier/HLF/schechter/Results/SegmentationMaps/Segmentation_maps_i5.0_det.fits 
+CHECKIMAGE_NAME /Users/nleethochawa/Documents/workspace_UVLF/Run_Glacier/HLF/schechter/Results/SegmentationMaps/Segmentation_maps_i3.0_det.fits 
  
 #--------------------- Memory (change with caution!) -------------------------
 MEMORY_OBJSTACK  65500
