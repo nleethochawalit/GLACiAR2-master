@@ -33,7 +33,7 @@ Modify the parameters file 'parameters.yaml'.
 
 **Parameters files**
 
-- *n_galaxies:* Number of galaxies to place in each iteration. In each iteration, the galaxies will have the same spectrum but different light profiles, elipticities, inclinations. (default = 100). Type = int.
+- *n_galaxies:* Number of galaxies to place in each iteration. In each iteration, the galaxies will have the same spectrum but different light profiles, elipticities, inclinations. (default = 100). See LF_shape and n_inject_max. Type = int.
 - *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude bin. The magnitude for each iteration will be drawn based on the specified LF_shape. (default = 100).
 - *mag_bins:* The numbers of magnitude bins wanted. For a simulation run from m1 = 24.0 to m2 = 25.0 in steps of 0.2 magnitudes, there will be 6 bins (default = 20).
 - *min_mag:* Brightest observed magnitude of the simulated galaxies (default = 24.1).  see *extended_mag_bins_low/high*
@@ -71,12 +71,12 @@ Modify the parameters file 'parameters.yaml'.
 - *min_sn:* Minimum (isophotal) signal to noise ratio in the detection band (or the first band listed in detection_band_combination) for a galaxy to be considered detected. All detected galaxies that are not blended will be run through dropout selection. So if you have S/N criteria in the dropout selection, make sure that this min_sn is safely smaller than those in the dropout selection. (default = 3.0) 
 - *dropouts:* True or False. Boolean that indicates whether the user wants to run a dropout selection (default = False).
 - *droptype:* Type of dropout. See dropouts.py You can make your own!
-- *LF_shape:* Choices are 'flat', 'exp', 'linear', 'schechter_flat', and 'schechter'. Use Schecter with caution be cause millions galaxies will be created. We recommend schecter_flat instead where the *n_iterations* magnitudes will be drawn from Schecter function within that magnitude bin but each bin is normalized to *n_galaxies* galaxies.
+- *LF_shape:* Choices are 'flat', 'exp', 'linear', 'schechter_flat', and 'schechter'. For 'flat' and 'schechter_flat' option, n_galaxies galaxies will be created each iteration. For other options, n_galaxies galaxies will be created in the smallest bins per iteration. Use 'schecter' with caution because millions galaxies can be created. We recommend schecter_flat instead where the *n_iterations* magnitudes will be drawn from Schecter function within that magnitude bin but each bin is normalized to *n_galaxies* galaxies.
 - *extended_mag_bins_low:* Number of bins to be extended from min_mag. Type = int. (default = 1)
 - *extended_mag_bins_high:* Number of bins to be extended from min_mag. Type = int. (default = 1)
 - *lin_slope:* Will be used if LF_shape is 'linear'
 - *exp_base:* Will be used if LF_shape is 'exp'
-- *n_inject_max:* When LF_shape is not 'flat', Each iteration can have more galaxies than n_galaxies. 
+- *n_inject_max:* When LF_shape is not 'flat', each iteration in some magnitude bins can have more galaxies than n_galaxies. In that case, each iteration will be by default divided into rounds where n_galaxies will be created. However, if the image is large enough, one can bypass this by putting n_inject_max that is higher than n_galaxies. (default = n_galaxies).
 
 Files
 ----------
@@ -94,6 +94,8 @@ Files required to run ``GLACiAR``.
 
 - PSF: Image of the PSF that we'll be used to convolve with the simulated galaxy. It depends on the instrument, telescope, and filter. Some PSFs are included with ``GLACiAR``, but users should add theirs if needed.
 
+- Filter throughputs: throughput of each band. They are needed to be placed in Files diectory. Most of the hst bands are provided. See these example for format.
+
 Modules
 ----------
 
@@ -101,9 +103,9 @@ The code is made of several modules which are called by a main module, ``complet
 
 - ``write_conf_files.py``: This module is used in ``run_sextractor.py`` and it reads the SExtractor parameters file, which has the criteria to identify the sources. Subsequently, it writes new temporary configuration files for each band. These are used when SExtractor is run.
 
-- ``run_sextractor.py``: This module is called by ``completeness.py``, and it calls ``write_conf_files.py`` to write the SExtractor parameters file for each band. It then distinguishes between the detection band and the other bands. It runs first on the detection band, identifies the sources, and runs then SExtractor in dual mode. This means that the photometry is performed on the location of the sources found in the detection band. This is crucial so then all the sources can be compared and have their information in all the bands.
+- ``run_sextractor.py``: This module is called by ``completeness.py``, and it calls ``write_conf_files.py`` to write the SExtractor parameters file for each band. It then distinguishes between the detection band and the other bands. It runs first on the detection band, identifies the sources, and runs then SExtractor in dual mode. This means that the photometry is performed on the location of the sources found in the detection band. This is crucial so then all the sources can be compared and have their information in all the bands. The current code run SExtractor with the command 'source-extractor'. If your computer sets to run with 'sex', then you should change them accordingly.
 
-- ``creation_of_galaxy.py``: This module performs most of the mathematics processes involved in the code. It calculates the flux for each of the pixels following the Sersic profile. Accordingly, it performs all the required operations for the profile. It also generates the random positions for the simulated sources, generates the mock spectrum and calculates the expected flux for that spectrum in a given band.
+- ``creation_of_galaxy.py``: This module performs most of the mathematics processes involved in the code. It calculates the number of galaxies to be generated according to LF_shape, flux for each of the pixels following the Sersic profile. Accordingly, it performs all the required operations for the profile. It also generates the random positions for the simulated sources, generates the mock spectrum and calculates the expected flux for that spectrum in a given band.
 
 - ``blending.py``: It identifies the detection and blending status of a source. It does this by comparing segmentation maps, the ones from the original science image and the ones with the simulated sources. It also extracts information from the catalogues when needed in order to compare magnitudes for the blending status. It runs for each iteration, so it retrieves a list with all the galaxies in that iteration and their status.
 
