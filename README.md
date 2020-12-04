@@ -19,12 +19,12 @@ Running GLACiAR
 ----------
 
 1. Download the source code from GitHub
-2. Modify or create a parameter file (e.g. 'parameters.yaml').
-3. Create a directory that contains the images for all different fields and bands required. In this directory, a subfolder 'Results' will be created by ``GLACiAR``. All the files created will be saved here. 
-4. Make sure that the throughput tables for all bands and the PSF images specific to the observation are in the 'Files' folder.
-5. Modify the SExtractor file 'parameters.sex' in the folder 'SExtractor_files' if needed.
-5. Modify 'dropouts.py' if needed.
-6. Run 'python completeness.py -s source-extractor parameters.yaml'. The -s option is for inputting the command that runs SExtractor (default = 'source-extractor').
+2. Modify or create a parameter file (e.g. ``parameters.yaml``).
+3. Create a directory that contains the images for all different fields and bands required. In this directory, a subfolder ``Results`` will be created by ``GLACiAR2``. All the files created will be saved here. 
+4. Make sure that the throughput tables for all bands and the PSF images are in the ``Files`` folder.
+5. Modify the SExtractor file ``parameters.sex`` in the folder ``SExtractor_files`` if needed.
+5. Modify '`dropouts.py'` if needed.
+6. Run ``python completeness.py -s source-extractor parameters.yaml``. The -s option is for inputting the command that runs ``SExtractor`` (default = 'source-extractor').
 
 Parameters
 ----------
@@ -34,7 +34,7 @@ Modify or create a yaml parameter file (e.g. 'parameters.yaml').
 **Parameters files**
 - *LF_shape:* List of the underlying distributions of the injected galaxies. The choices are the following (default = *schechter_flat*).
     - *flat* - All input magnitude bins have the same number of injected galaxies, equal to *n_galaxies* x *n_iterations*. Each M<sub>UV</sub> is sampled from a uniform distribution.
-    - *schechter_flat* - All input magnitude bins have the same number of injected galaxies but each M<sub>UV</sub> is sampled from the Schechter function specified in 'LF_Schechter_params.txt'
+    - *schechter_flat* - All input magnitude bins have the same number of injected galaxies but each M<sub>UV</sub> is sampled from the Schechter function specified in ``Files/LF_Schechter_params.txt``
     - *schechter* The number of galaxies in each magnitude bin follows the specified Schechter function. Each M<sub>UV</sub> is also sampled from the Schechter function.
     - *linear* The number of galaxies in each magnitude bin follows a linear function with a slope *lin_slope*. ach M<sub>UV</sub> is also sampled from the linear function.
     - *exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. Each M<sub>UV</sub> is also sampled from the exponential function.  
@@ -65,7 +65,7 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *image_name:* Heading name of the images. The naming of all science and rms images should be as follows: *image_name*_{field name}_{band name}+*imfits_end* (or *rmsfits_end* (required).
 - *imfits_end:* See above for the naming of the files.
 - *rmsfits_end':* See above for the naming of the files.
-- *fixed_psf:* If the images are psf-matched, put name of the common psf file here. The psf image should be put in folder Files. Leave as blank if the images are not psf-match. In that case, each image will be convolved with 'psf_*band*.fits' instead.
+- *fixed_psf:* If the images are psf-matched, put name of the common psf file here. The psf image should be put in folder Files. Leave as blank if the images are not PSF-match. In that case, each image will be convolved with ``psf_{band name}.fits`` instead.
 - *R_eff:* Effective radii of the galaxies at redshift 6 in kpc (default = 1.075).
 - *beta_mean:* Mean of the UV slope. The injected galaxies will have spectra with slopes drawn from this mean.
 - *beta_sd:* Standard deviation of the UV slopes. 
@@ -90,7 +90,7 @@ Files required to run ``GLACiAR2``.
 
 - List: Text file with the names of the fields from the survey. This list is given as an input parameter. Its minimum length is one, i.e. the name of one field.
 
-- SExtractor parameters: As previously explained, one of the steps of the code involves running ``SExtractor`` on the original images and the images with simulated galaxies. To run the software, a file defining the parameters is required. There is an example provided under ``SExtractor\_files``, but we recommend for the user to change it according to their data.
+- SExtractor parameters: As previously explained, one of the steps of the code involves running ``SExtractor`` on the original images and the images with simulated galaxies. To run the software, a file defining the parameters is required. There is an example provided under ``SExtractor_files``, but we recommend for the user to change it according to their data.
 
 - RMS maps: They describe the noise intensity at each pixel in relation to the science image. Although they are necessary only if required for the SExtractor parameters, it is strongly recommended that one of these is used in order to improve the source detection.
 
@@ -101,11 +101,11 @@ Files required to run ``GLACiAR2``.
 Modules
 ----------
 
-The code is made of several modules which are called by a main module, ``completeness.py``. A description of them follows.
+The code is made of several modules which are called by a main module, ``completeness.py``. Their descriptions are as follow.
 
-- ``write_conf_files.py``: This module is used in ``run_sextractor.py`` and it reads the SExtractor parameters file, which has the criteria to identify the sources. Subsequently, it writes new temporary configuration files for each band. These are used when SExtractor is run.
+- ``write_conf_files.py``: This module is called by ``run_sextractor.py``. It reads the provided SExtractor parameters file ``SExtractor_files/parameters.sex``. It then edits the parameters specific to each band (such as RMS image name, zeropoint, and gains), and writes new temporary configuration files. These are used by ``SExtractor``.
 
-- ``run_sextractor.py``: This module is called by ``completeness.py``, and it calls ``write_conf_files.py`` to write the SExtractor parameters file for each band. It then distinguishes between the detection band and the other bands. It runs first on the detection band, identifies the sources, and runs then SExtractor in dual mode. This means that the photometry is performed on the location of the sources found in the detection band. This is crucial so then all the sources can be compared and have their information in all the bands. The current code run SExtractor with the command 'source-extractor'. If your computer sets to run with 'sex', then you should change them accordingly.
+- ``run_sextractor.py``: This module is called by ``completeness.py``. It runs ``SExtractor`` in dual mode. This means that the photometry is performed on the location of the sources found in the detection band. The current code run SExtractor with the command 'source-extractor'. If your computer runs ``SExtractor`` with the command 'sex', you should run ``python completeness.py -s sex parameters.yaml``.
 
 - ``creation_of_galaxy.py``: This module performs most of the mathematics processes involved in the code. It calculates the number of galaxies to be generated according to LF_shape, flux for each of the pixels following the Sersic profile. Accordingly, it performs all the required operations for the profile. It also generates the random positions for the simulated sources, generates the mock spectrum and calculates the expected flux for that spectrum in a given band.
 
