@@ -1,5 +1,4 @@
 #redshift redshiftlow redshifthigh Mstar alpha logphi lambda source
-20   9.0   12.0  -20.92   -2.27   -4.89   1600 Bouwens2015
 9    7.7   9.7   -21.01   -2.06   -4.24   1450 Morishita2018 
 8    7.4   8.8   -20.40   -2.08   -3.51   1600 Schmidt2014
 6.8  6.5   7.5   -20.61   -1.98   -3.34   1600 Bouwens2015   

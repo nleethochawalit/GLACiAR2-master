@@ -4,7 +4,7 @@
 
 #-------------------------------- Catalog ------------------------------------
 
-CATALOG_NAME test 
+CATALOG_NAME
 CATALOG_TYPE     ASCII_HEAD     # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,
 #CATALOG_TYPE     FITS_1.0 #ASCII_HEAD     # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,
                                 # ASCII_VOTABLE, FITS_1.0 or FITS_LDAC
@@ -31,7 +31,7 @@ CLEAN_PARAM      1.            # Cleaning efficiency
 
 WEIGHT_TYPE      MAP_RMS,MAP_RMS # type of WEIGHTing: NONE, BACKGROUND,
                                  # MAP_RMS, MAP_VAR or MAP_WEIGHT
-WEIGHT_IMAGE     /Users/nleethochawa/Documents/workspace_UVLF/BORG_data/cycle25/borg_0050-1744_det_drz_rms_scl.fits, /Users/nleethochawa/Documents/workspace_UVLF/BORG_data/cycle25/borg_0050-1744_f098w_drz_rms_scl.fits 
+WEIGHT_IMAGE
 WEIGHT_GAIN	 N,N
 WEIGHT_THRESH	100 #,100
 #-------------------------------- FLAGging -----------------------------------
@@ -53,9 +53,9 @@ PHOT_FLUXFRAC	0.5,0.9
 SATUR_LEVEL      50000.0        # level (in ADUs) at which arises saturation
 SATUR_KEY        SATURATE       # keyword for saturation level (in ADUs)
 
-MAG_ZEROPOINT    25.6672
+MAG_ZEROPOINT
 MAG_GAMMA        4.0            # gamma of emulsion (for photographic scans)
-GAIN             0
+GAIN
 GAIN_KEY         GAIN           # keyword for detector gain in e-/ADU
 PIXEL_SCALE      0.08            # size of pixel in arcsec (0=use FITS WCS info)
 
@@ -70,11 +70,11 @@ BACK_TYPE        AUTO           # AUTO or MANUAL
 BACK_VALUE       0.0            # Default background value in MANUAL mode
 BACK_SIZE        64             # Background mesh: <size> or <width>,<height>
 BACK_FILTERSIZE  3              # Background filter: <size> or <width>,<height>
-BACKPHOTO_TYPE   LOCAL          #
+BACKPHOTO_TYPE   LOCAL         #
 
 #------------------------------ Check Image ----------------------------------
 CHECKIMAGE_TYPE
-CHECKIMAGE_NAME 
+CHECKIMAGE_NAME
 
 #CHECKIMAGE_TYPE  SEGMENTATION  # can be NONE, BACKGROUND, BACKGROUND_RMS,
                                 # MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND,
