@@ -1,78 +1,47 @@
 n_galaxies: 200
-n_iterations: 5
-mag_bins: 12
-min_mag: 23.0
-max_mag: 28.5
-z_bins: 1
-min_z: 5
-max_z: 5
-n_bands: 9
-ref_uv_wavelength: 1500
-detection_band: det
+n_iterations: 10
+mag_bins: 7
+min_mag: 24.0
+max_mag: 27.0
+z_bins: 9
+min_z: 7
+max_z: 9
+n_bands: 7
+ref_uv_wl: 1600
+detection_band:
 bands:
-- f435w
-- f606w
-- f775w
-- f814w
-- f850lp
-- f105w
-- f125w
-- f140w
-- f160w
 zeropoints:
-- 25.68
-- 26.51
-- 25.69
-- 25.94
-- 24.87
-- 26.27
-- 26.23
-- 26.45
-- 25.94
 gain_values:
-- 1 
-- 1 
-- 1
-- 1
-- 1 
-- 1
-- 1
-- 1
-- 1
-detection_band_combination:
-- f160w
-- f140w
-- f125w
-- f850lp
-coadd_type: 2
-list_of_fields: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glacier/HLF/list.txt
+det_combination:
+coadd_type:
+list_of_fields: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glaciar/jwst/list_jwst.txt
 R_eff: 1.075
 beta_mean: -2.2
 beta_sd: 0.4
-size_pix: 0.06
+size_pix: 0.08
 margin: 0.3
-path_to_images: /Users/nleethochawa/Documents/workspace_UVLF/CANDELS_data/HLF/
-path_to_results: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glacier/HLF/schechter/
-image_name: hlsp_hlf_hst_60mas_
-imfits_end: _v2.0_conv_sci.fits 
-rmsfits_end: _v2.0_conv_wht.fits
-fixed_psf: f160w_psf.fits
+path_to_images: /Users/nleethochawa/Documents/workspace_UVLF/jwst_mock_data/
+path_to_results: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glaciar/jwst/
+image_name: borg_
+imfits_end: _drz_sci.fits
+rmsfits_end: _drz_rms_sclv2.fits
+fixed_psf:
 types_galaxies: 2
 sersic_indices:
 - 1
 - 4
-fraction_type_galaxies:
+fraction_type:
 - 0.5
 - 0.5
-ibins: 5
-ebins: 5
-min_sn: 3
+ibins: 4
+ebins: 4
+min_sn: 0
 dropouts: True
-droptype: hlf
+droptype: borg25
 de_Vacouleur: True
-extended_mag_bins_low: 1
-extended_mag_bins_high: 1
-LF_shape: ['schechter_flat']
-lin_slope:
+LF_shape: ['flat']
+lin_slope: 
 exp_base:
-n_inject_max: 1000
+n_inject_max:
+Minput_min: -23.5
+Minput_max: -20.0

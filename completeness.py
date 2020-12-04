@@ -15,37 +15,60 @@ from astropy.cosmology import Planck15 as cosmo
 from astropy import units as u
 from shutil import copyfile
 import warnings
+import datetime
+import argparse
+
+print(datetime.datetime.now())
+
+#Parsing arguments
+msg = ""
+parser = argparse.ArgumentParser(description=msg)
+parser.add_argument('parameter_file', type=str, 
+                    help='Name of the yaml parameter file')
+parser.add_argument("-m", "--minimal", action = "store_true", 
+                    default = True, help = "Only Keep minimum number of files (default: True)")
+parser.add_argument("-s", "--SExtractor_command", action = "store", 
+                    default = 'source-extractor',dest = 'SExtractor_command', 
+                    help = "SExtractor command (default: source-extractor)")
+args = parser.parse_args()
+parameter_file = args.parameter_file
+minimal_file = args.minimal
+SExtractor_command = args.SExtractor_command
+    
+print("parameter file: %s"%parameter_file)
+print("SExtractor command: %s"%SExtractor_command)
+print("Minimal File: %s"%minimal_file)
+
 # Read input parameters from the file 'parameters.yaml'.
 # Assign a default value when possible if they are not given by the user.
-
-stream = open('parameters.yaml', 'r')
+stream = open(parameter_file, 'r')
 parameters = yaml.load(stream,Loader=yaml.FullLoader)
 if parameters['n_galaxies'] is None:
     parameters['n_galaxies'] = 100
 if parameters['n_iterations'] is None:
-    parameters['n_iterations'] = 100
+    parameters['n_iterations'] = 20
 if parameters['mag_bins'] is None:
-    parameters['mag_bins'] = 20
+    parameters['mag_bins'] = 13
 if parameters['min_mag'] is None:
-    parameters['min_mag'] = 24.1
+    parameters['min_mag'] = 24.0
 if parameters['max_mag'] is None:
-    parameters['max_mag'] = 27.9
+    parameters['max_mag'] = 30.0
 if parameters['z_bins'] is None:
     parameters['z_bins'] = 16
 if parameters['min_z'] is None:
     parameters['min_z'] = 7.5
 if parameters['max_z'] is None:
     parameters['max_z'] = 9.0
-if parameters['ref_uv_wavelength'] is None:
-    raise ValueError('Value of lambda required.')
+if parameters['ref_uv_wl'] is None:
+    parameters['ref_uv_wl'] = 1600
 if parameters['n_bands'] is None:
     raise ValueError('Number of bands needed.')
 if parameters['detection_band'] is None:
     raise ValueError('Input detection band.')
 if parameters['bands'] is None:
     raise ValueError('Input name of the bands.')
-if parameters['detection_band_combination'] is None:
-    parameters['detection_band_combination'] = None
+if parameters['det_combination'] is None:
+    parameters['det_combination'] = None
 if parameters['coadd_type'] is None:
     parameters['coadd_type'] = 1 #1 = simple coadd, 2 = noise-:equalized coadd
 if parameters['list_of_fields'] is None:
@@ -65,9 +88,9 @@ if parameters['path_to_results'] is None:
 if parameters['image_name'] is None:
     raise ValueError('Input the name of the images.')
 if parameters['imfits_end'] is None:
-    parameters['imfits_end'] = '_v1_drz.fits'
+    parameters['imfits_end'] = '_drz.fits'
 if parameters['rmsfits_end'] is None:
-    parameters['rmsfits_end'] = '_v1_rms_scl.fits'
+    parameters['rmsfits_end'] = '_rms.fits'
 if parameters['fixed_psf'] is None:
     parameters['fixed_psf'] = None
 if parameters['R_eff'] is None:
@@ -79,40 +102,31 @@ if parameters['beta_sd'] is None:
 if parameters['types_galaxies'] is None:
     parameters['types_galaxies'] = 2
 if parameters['ibins'] is None:
-    parameters['ibins'] = 10
+    parameters['ibins'] = 9
 if parameters['ebins'] is None:
-    parameters['ebins'] = 10
+    parameters['ebins'] = 5
 if parameters['sersic_indices'][1] is None:
     parameters['sersic_indices'][1] = 4
-if parameters['fraction_type_galaxies'] is None:
-    parameters['fraction_type_galaxies'] = [0.5, 0.5]
+if parameters['fraction_type'] is None:
+    parameters['fraction_type'] = [0.5, 0.5]
 if parameters['margin'] is None:
     parameters['margin'] = 0.3 #arcsecond. Margin for injection/recovery
 if parameters['min_sn'] is None:
-    parameters['min_sn'] = 3
+    parameters['min_sn'] = 0
 if parameters['dropouts'] is None:
     parameters['dropouts'] = False
-if parameters['droptype'] is None: #bort, hlf, candels
-    parameters['droptype'] = 'borg'
 if parameters['de_Vacouleur'] is None:
     parameters['de_Vacouleur'] = False
 if parameters['LF_shape'] is None:
-    parameters['LF_shape'] = ['Schechter','linear','flat']
-if parameters['extended_mag_bins_low'] is None:
-    parameters['extended_mag_bins_low'] = 1 #should look at the pm_out and see if it's appropriate
-if parameters['extended_mag_bins_high'] is None:
-    parameters['extended_mag_bins_high'] = 1 
+    parameters['LF_shape'] = ['schechter_flat']
 if parameters['lin_slope'] is None:
     parameters['lin_slope'] = 2
 if parameters['exp_base'] is None:
     parameters['exp_base'] = 2
 if parameters['n_inject_max'] is None:
     parameters['n_inject_max'] = parameters['n_galaxies']
-
-#check stuff
 if ((parameters['coadd_type'] <= 0) or (parameters['coadd_type'] > 2)):
     raise ValueError('Input coadd_type will not be recognized.')
-
 def delete_id_fits(original_file, ids, id_keep=False):
     """Delete sextractor entries in fits format by id number"""
     
@@ -177,8 +191,8 @@ def create_stamps(n0, size_galaxy0, Re0, types_galaxies0, ebins0, ibins0):
                                       to 0.
     """
     galaxy_grid = np.zeros((types_galaxies0, ebins0, ibins0, size_galaxy0,
-                            size_galaxy0))
-    galaxy_grid_n4 = np.zeros((size_galaxy0, size_galaxy0))
+                            size_galaxy0),dtype=np.float32)
+    galaxy_grid_n4 = np.zeros((size_galaxy0, size_galaxy0),dtype=np.float32)
     ivalues = np.arange(0, 0.5, 0.5/(ibins0)) * np.pi
     evalues = np.arange(0, 1., 1. / (ebins0))
     for i in range(types_galaxies0):
@@ -191,7 +205,7 @@ def create_stamps(n0, size_galaxy0, Re0, types_galaxies0, ebins0, ibins0):
         else:
             print('sersic index = %d'%n0[i])
             print('eccentricity:', evalues)
-            print('inclination:', ivalues)
+            print('inclination (radian):', ivalues)
             for j in range(ebins0):
                 for k in range(ibins0):
                     #print(n0[i], evalues[j], ivalues[k])
@@ -261,26 +275,31 @@ def place_gal(n0, ngal, frac_n, e0, i0, flux0, frame0, x0, y0, s0, gal_g,
                 galaxy = gal_g_n4[:, :] * flux0
             else:
                 galaxy = gal_g[i, e0[gn], i0[gn], :, :] * flux0
+                
             # Convolve galaxy with the PSF.
             gconv = convolve(galaxy, psf0, normalize_kernel=True)
+            
             # Add galaxy stamp to the empty frame with the centre in (x0,y0).
-            frame0[int(x0[gn]-s0):int(x0[gn]+s0),
-                   int(y0[gn]-s0):int(y0[gn]+s0)] = gconv
+            large_frame = np.zeros_like(frame0)
+            large_frame[int(x0[gn]-s0):int(x0[gn]+s0),
+                        int(y0[gn]-s0):int(y0[gn]+s0)] = gconv
+            frame0 += large_frame
             gn = gn + 1
+    # Convolve image with the PSF.
     return frame0
 
-def coadd_images(path_to_results, cat, detection_band_combination,
+def coadd_images(path_to_results, cat, det_combination,
                  detection_band, path_to_im, image_name,
                  rmsfits_end, coadd_type):
     """
-    Coadd images in detection_band_combination
+    Coadd images in det_combination
     If coadd_type = 1: simple average
     If coadd_type = 2: noise-equalized average 
-    *** If coadd_type =2, assume that the *rmsfits_end images are weight image!!
+    *** If coadd_type =2, assume that the *rmsfits_end images are rms image!!
     """
     #creating template frame
     hdu_list = fits.open('%sResults/images/sersic_sources_%s_%s.fits'%
-                             (path_to_results,cat,detection_band_combination[0]),
+                             (path_to_results,cat,det_combination[0]),
                              ignore_missing_end=True)
     head_data = hdu_list[0].header
     shape = hdu_list[0].data.shape
@@ -290,29 +309,29 @@ def coadd_images(path_to_results, cat, detection_band_combination,
     
     #adding bands to frame
     if coadd_type == 1:
-        for ib in range(len(detection_band_combination)):
+        for ib in range(len(det_combination)):
             imhdu = fits.open('%sResults/images/sersic_sources_%s_%s.fits'%
-                             (path_to_results,cat,detection_band_combination[ib]),
+                             (path_to_results,cat,det_combination[ib]),
                              ignore_missing_end=True)
             frame += +imhdu[0].data   
             imhdu.close()
         
     elif coadd_type == 2:
-        for ib in range(len(detection_band_combination)):
-            whthdu = fits.open('%s%s%s_%s%s'%(path_to_im, image_name, cat, 
-                                 detection_band_combination[ib], rmsfits_end),
+        for ib in range(len(det_combination)):
+            rmshdu = fits.open('%s%s%s_%s%s'%(path_to_im, image_name, cat, 
+                                 det_combination[ib], rmsfits_end),
                                ignore_missing_end=True)
-            divider = np.sqrt(whthdu[0].data, 
-                              out = np.zeros(shape,dtype=np.float32), 
-                              where = whthdu[0].data >= 0)
-            whthdu.close()
+            divider = np.divide(1.,rmshdu[0].data,
+                                out=np.zeros(shape,dtype=np.float32), 
+                                where = rmshdu[0].data!= 30000) #assume that the region outside of observation is set at 300000
+            rmshdu.close()
             imhdu = fits.open('%sResults/images/sersic_sources_%s_%s.fits'%
-                             (path_to_results,cat,detection_band_combination[ib]),
+                             (path_to_results,cat,det_combination[ib]),
                              ignore_missing_end=True)
             frame += imhdu[0].data*divider
             imhdu.close()
             
-    frame /= len(detection_band_combination)
+    frame /= len(det_combination)
     outfile_conv = '%sResults/images/sersic_sources_%s_%s.fits'%(
         path_to_results,cat,detection_band)     
     # Save the new fits file with the simulated galaxies.
@@ -347,6 +366,12 @@ def create_synthetic_fits(name_hdu_list1,band,imfits_end,m,sersic_indices,
         hdu_psf = fits.open(psf_file)
         psf = hdu_psf[ipsf].data
         hdu_psf.close()
+        #according to astropy.convolve, Kernel size must be odd in all axes
+        if psf.shape[0]%2==0:
+            psf = psf[0:psf.shape[0]-1,:]
+        if psf.shape[1]%2==0:
+            psf = psf[:,0:psf.shape[1]-1]
+            
         #placing all galaxies on array of zeros
         frame_gal = place_gal(sersic_indices,ninject,fraction_type_galaxies,
                               e_rand, i_rand, flux, frame,
@@ -367,7 +392,7 @@ def create_synthetic_fits(name_hdu_list1,band,imfits_end,m,sersic_indices,
     if return_framegal is True:
         return frame_gal
 
-def main(minimal_file=True):
+def main(minimal_file=True,SExtractor_command='source-extractor'):
     # Open the file with the name of the fields that the simulation
     # is going to be run for.
     f = open(parameters['list_of_fields'])
@@ -389,21 +414,27 @@ def main(minimal_file=True):
     #calculated by roughly converting the output magnitude back to intrinsic
     #and round to single digit. Assuming that the observed magnitude (m) of 
     #the detection band is m at the UV reference wavelength.
-    maxlumdis = cosmo.luminosity_distance(parameters['max_z']).to(u.parsec).value
-    minlumdis = cosmo.luminosity_distance(parameters['min_z']).to(u.parsec).value
-    M_input_min = np.around(parameters['min_mag']-2.5*
-                            np.log10((maxlumdis/10.)**2/(1.+parameters['min_z'])),
-                            decimals=1)
-    
-    M_input_max = np.around(parameters['max_mag']-2.5*
-                            np.log10((minlumdis/10.)**2/\
-                                     (1.+parameters['min_z'])),decimals=1)
-    nmagbins_in = (np.ceil((M_input_max-M_input_min)/mbinsize)+\
-        parameters['extended_mag_bins_low']+
-        parameters['extended_mag_bins_high']).astype(int)
 
-    M_input = (np.arange(nmagbins_in)-parameters['extended_mag_bins_low'])*\
-        mbinsize+M_input_min
+    if parameters['Minput_min'] is None:
+        maxlumdis = cosmo.luminosity_distance(parameters['max_z']).to(u.parsec).value
+        M_input_min = np.around(parameters['min_mag']-2.5*
+                            np.log10((maxlumdis/10.)**2/(1.+parameters['max_z'])),
+                            decimals=1) #brightest absolute magnitude
+        M_input_min = M_input_min-mbinsize #make it one magbin lower
+    else:
+        M_input_min = parameters['Minput_min']
+        
+    if parameters['Minput_max'] is None:
+        minlumdis = cosmo.luminosity_distance(parameters['min_z']).to(u.parsec).value
+        M_input_max = np.around(parameters['max_mag']
+                                -2.5*np.log10((minlumdis/10.)**2/(1.+parameters['min_z'])),
+                                decimals=1) #faintest
+        M_input_max = M_input_max+mbinsize
+    else:
+        M_input_max = parameters['Minput_max']
+        
+    nmagbins_in = np.ceil((M_input_max-M_input_min)/mbinsize).astype(int)
+    M_input = np.arange(nmagbins_in)*mbinsize+M_input_min
             
     nLF = len(parameters['LF_shape'])
     
@@ -420,6 +451,8 @@ def main(minimal_file=True):
     
     # Creates the directories that will contain the results if they
     # don't already exist.
+    if not os.path.exists(parameters['path_to_results']):
+        os.makedirs(parameters['path_to_results'])
     if not os.path.exists(parameters['path_to_results']+'Results'):
         os.makedirs(parameters['path_to_results']+'Results')
     if not os.path.exists(parameters['path_to_results']+'SciImages'):
@@ -431,20 +464,22 @@ def main(minimal_file=True):
         os.makedirs(parameters['path_to_results']+'Results/Plots')
     if not os.path.exists(parameters['path_to_results']+'Results/images/'):
         os.makedirs(parameters['path_to_results']+'Results/images/')
-    if not os.path.exists(parameters['path_to_results']+'/Results/Dropouts'):
-        os.makedirs(parameters['path_to_results']+'/Results/Dropouts')
+    if not os.path.exists(parameters['path_to_results']+'/Results/Catalogs'):
+        os.makedirs(parameters['path_to_results']+'/Results/Catalogs')
         
     #copy parameter and Sextractor files to the Results folder
-    copyfile('parameters.yaml',parameters['path_to_results']+'parameters.yaml')
+    copyfile(parameter_file,parameters['path_to_results']+parameter_file)
     copyfile('SExtractor_files/parameters.sex',
              parameters['path_to_results']+'parameters.sex')
+    print('Results will be in %s'%parameters['path_to_results'])
     #copy Schechter parameter if LF shape is specified as Schechter    
     for ilf in range(nLF):
         parameters['LF_shape'][ilf] = parameters['LF_shape'][ilf].lower()
         if ((parameters['LF_shape'][ilf] == 'schechter') or 
             (parameters['LF_shape'][ilf] == 'schechter_full')): 
             copyfile('Files/LF_Schechter_params.txt', 
-                     parameters['path_to_results']+'LF_Schechter_params.txt')        
+                     parameters['path_to_results']+'LF_Schechter_params.txt')
+
     #loop for each field
     for ic in range(len(cat)):    
         print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
@@ -455,8 +490,8 @@ def main(minimal_file=True):
         nout_completeness = np.zeros((nmagbins_out,nmagbins_in,nzbins,nLF))
         nout_dropouts = np.zeros((nmagbins_out,nmagbins_in,nzbins,nLF))
         Nin = np.zeros((nmagbins_in,nzbins,nLF))
-        total_completeness = np.zeros((nmagbins_in,nzbins))
-        total_dropouts = np.zeros((nmagbins_in,nzbins))
+        total_completeness = np.zeros((nmagbins_in,nzbins,nLF))
+        total_dropouts = np.zeros((nmagbins_in,nzbins,nLF))
         
         #science image names (begining)
         name_hdu_list1 = (parameters['path_to_images'] +
@@ -470,34 +505,22 @@ def main(minimal_file=True):
                         parameters['path_to_results'],
                         parameters['image_name'], cat[ic],
                         imfits_end =parameters['imfits_end'], 
-                        rmsfits_end=parameters['rmsfits_end'])
-
-        # Open science image.
-        obs_data_db, header_db = open_images(name_hdu_list1,
-                                             parameters['detection_band'],
-                                             parameters['imfits_end'])
-        # Obs_data_db will be used for assigning positions of fake galaxies
+                        rmsfits_end=parameters['rmsfits_end'],
+                        SExtractor_command=SExtractor_command)
         
-        # Open segmentation maps from original science image.
-        segm_science_old = fits.open(parameters['path_to_results'] +
-                                     'SciImages/sources_'+cat[ic]+'_' +
-                                     parameters['detection_band'] +
-                                     '_segm.fits', ignore_missing_end=True)
-        segm_maps_old = segm_science_old[0].data
-        segm_science_old.close()
+        # Define segmentation map from the original science image.
+        segm_maps_old_file = parameters['path_to_results'] +\
+            'SciImages/sources_'+cat[ic]+'_' +parameters['detection_band'] +\
+                '_segm.fits'
         # Open SExtractor catalogue with the identified sources from the
         # original science image and save the following information
         # about the sources on the detection band, or the chosen main detection band
-        # id_old_cat = SExtractor ID.
-        # m_old_cat = AUTO magnitude.
-        # f_old_cat = ISO flux.
-        # xpos_old_cat = Centre position in the x axis.
-        # ypos_old_cat = Centre position in the y axis.
+        
         if parameters['detection_band']=='det':
-            ibmain = parameters['bands'].index(parameters['detection_band_combination'][0])
+            ibmain = parameters['bands'].index(parameters['det_combination'][0])
             f_old_hdu = fits.open('%sSciImages/sources_%s_%s_cat.fits'%
                              (parameters['path_to_results'],cat[ic],
-                              parameters['detection_band_combination'][0]),
+                              parameters['det_combination'][0]),
                              ignore_missing_end=True)
         else:
             f_old_hdu = fits.open('%sSciImages/sources_%s_%s_cat.fits'%
@@ -513,8 +536,8 @@ def main(minimal_file=True):
         ypos_old_cat = f_old_hdu[1].data['Y_IMAGE']
         f_old_hdu.close()
         
-        # Create output files and write headers to save the stats for each field
-        # and LF
+        # Create main overall output files and write headers to save 
+        # the detection stats and detection/dropout array for each field
         for ilf in range(nLF):
             curLF = parameters['LF_shape'][ilf]               
             fws = open(parameters['path_to_results']+'Results/'+curLF+
@@ -540,10 +563,10 @@ def main(minimal_file=True):
                 fws3.writelines(header)  
                 fws3.close()
         
-        # Start the real loops                        
-        # Run for all the required redshifts.
+        # Start the mega loops                        
+        # Run for all required redshift bins.
         for iz in range(parameters['z_bins']):
-            
+            print(datetime.datetime.now())
             redshift = z_total[iz]  # Redshift of the galaxies
             print('****************************')
             print('Redshift z = %.1f'%redshift)     
@@ -553,9 +576,9 @@ def main(minimal_file=True):
                 cosmo.arcsec_per_kpc_proper(redshift).value / \
                     parameters['size_pix'] 
             
-            #Set the stamp diameter to 3.5 arcsecs or at least 10 Re   
-            stampsize = int(np.round(3.5/parameters['size_pix'])) #in pixels
-            if stampsize < int(Re)*10: stampsize=int(Re)*10
+            #Set the stamp diameter to 1.8 arcsecs or at least 5 Re   
+            stampsize = int(np.round(np.ceil(1.8/parameters['size_pix']/2))*2) #in pixels, and is even number
+            if stampsize < int(Re)*5: stampsize=int(Re)*5
             stamp_radius = stampsize/2  # Radius of the galaxy stamp.
         
             #Make galaxy stamps with specified Re, and stamp size, and various
@@ -564,12 +587,12 @@ def main(minimal_file=True):
                 parameters['sersic_indices'],stampsize, Re,
                 int(parameters['types_galaxies']), parameters['ebins'],
                 parameters['ibins'])
-            
+
             #Run for all LF shapes
             for ilf in range(nLF):
                 curLF = parameters['LF_shape'][ilf]   
 
-                #Open the files to append
+                #Open the main overall output files to append
                 fws = open(parameters['path_to_results']+'Results/'+curLF+
                            '_RecoveredStats_cat'+cat[ic]+'.cat', 'a')
                 
@@ -592,7 +615,7 @@ def main(minimal_file=True):
                 #(specified in Schechter param file). For other LF, use the
                 #specified wavelength from param.yaml
                 if refwl is None: 
-                    refwl = parameters['ref_uv_wavelength'] 
+                    refwl = parameters['ref_uv_wl'] 
                     
                 
                 print('%s LF'%curLF)
@@ -611,11 +634,12 @@ def main(minimal_file=True):
                             'input %s mag, '%(parameters['bands'][ibmain]) +
                             'detection, dropout, mag_auto and magerr_auto pairs, ' 
                             'mag_iso and sn_iso pairs, mag_aper1 and sn_aper1 pairs, '
-                            'mag_aper2 and sn_aper2 pairs in the following bands '+
+                            'mag_aper2 and sn_aper2 pairs,'
+                            'mag_aper3 and sn_aper3 pairs in the following bands '+
                             ''.join([' %s'%x for x in parameters['bands']]) + 
-                            ', r50, r90\n')
+                            ', Kron radius (pixels), r90, xpos, ypos \n')
                 fwg.writelines(headline)    
-                        
+                fwg.close()        
                 
                 # Empty arrays to save the stats.
                 total = np.zeros(nmagbins_in)
@@ -653,11 +677,13 @@ def main(minimal_file=True):
                                             parameters['beta_sd'])
                         # Create spectrum
                         creation_of_galaxy.write_spectrum(Magnitude, beta, 
-                                         redshift, absmag=True, refwl = refwl)
+                                         redshift, parameters['path_to_results'], 
+                                         absmag=True, refwl = refwl)
                         
                         # Calculate input (theoretical observed) AB mag in each band
                         for ib in range(parameters['n_bands']):      
-                            m[ib] = creation_of_galaxy.mag_band(parameters['bands'][ib]) 
+                            m[ib] = creation_of_galaxy.mag_band(parameters['bands'][ib],
+                                                                redshift,parameters['path_to_results']) 
                             flux[ib] = (10**((parameters['zeropoints'][ib] -
                                         m[ib])/2.5))
                             
@@ -680,16 +706,16 @@ def main(minimal_file=True):
                             totinject += ninject
                             
                             # Assign (xpos, ypos) = the position of the center of the
-                            # galaxy in the image in pixels.
+                            # galaxy in the image in pixels.        
                             xpos, ypos = creation_of_galaxy.galaxies_positions(
-                                obs_data_db, ninject, stampsize, Re)
+                                    name_hdu_list1+parameters['detection_band']+parameters['imfits_end'], 
+                                    ninject, stampsize, Re)
                             
                             # Assign a random beta, incl, and elip.
                             i_rand = np.random.randint(0, parameters['ibins'],
                                                        size=ninject)
                             e_rand = np.random.randint(0, parameters['ebins'],
                                                        size=ninject)
-                        
                             # Place galaxies and make fits files in all bands.
                             for ib in range(parameters['n_bands']): 
                                 create_synthetic_fits(name_hdu_list1,
@@ -698,19 +724,18 @@ def main(minimal_file=True):
                                                       m[ib],
                                                       parameters['sersic_indices'],
                                                       ninject,
-                                                      parameters['fraction_type_galaxies'],
+                                                      parameters['fraction_type'],
                                                       e_rand,i_rand,flux[ib],
                                                       xpos,ypos,stamp_radius,
                                                       galaxy_grid,galaxy_grid_n4,
                                                       parameters['path_to_results'],
                                                       cat[ic],fixed_psf = parameters['fixed_psf'])
-
                             # Check if there is a separate detection band,
                             # then create the detection image
                             if parameters['detection_band']=='det':                                                                     
                                 coadd_images(parameters['path_to_results'],
                                              cat[ic],
-                                             parameters['detection_band_combination'],
+                                             parameters['det_combination'],
                                              parameters['detection_band'],
                                              parameters['path_to_images'], 
                                              parameters['image_name'],
@@ -731,11 +756,23 @@ def main(minimal_file=True):
                                                     cat[ic], M_input[iM], redshift,
                                                     rmsfits_end = parameters['rmsfits_end'],
                                                     roundnum = ir, 
-                                                    do_segmentation=do_segmentation)
+                                                    do_segmentation=do_segmentation,
+                                                    SExtractor_command=SExtractor_command)
                                 print('.',end='')
                             print('.')
+                            
+                            #remove the newly created images to save space (except detection images)
+                            if minimal_file is True:
+                                for ib in range(parameters['n_bands']): 
+                                    os.remove(parameters['path_to_results'] + 
+                                        'Results/images/sersic_sources_' +
+                                        '%s_%s.fits'%(cat[ic],parameters['bands'][ib]))
+                            
                             # Find the number of sources for the different categories
-                            # of detection statuses.
+                            # of detection status.
+                            fwg = open(parameters['path_to_results']+'Results/'+curLF+
+                                       'RecoveredGalaxies_'+cat[ic]+'_z%.2f'%redshift+
+                                       '.cat', 'a')
                             identified_aux, blended_f1_aux, blended_f2_aux,\
                                 blended_b_aux, blended_l_aux,\
                                 not_indentified_sn_aux, not_indentified_aux,\
@@ -744,13 +781,13 @@ def main(minimal_file=True):
                                     niter, ir, parameters['detection_band'],
                                     cat[ic], M_input[iM], Magnitude, beta, redshift,
                                     xpos, ypos, xpos_old_cat, ypos_old_cat, 
-                                    segm_maps_old, m_old_cat, f_old_cat,
+                                    segm_maps_old_file, m_old_cat, f_old_cat,
                                     id_old_cat, m[ibmain],
                                     parameters['zeropoints'], parameters['bands'],
                                     parameters['min_sn'], parameters['dropouts'],
-                                    parameters['droptype'], margin, m_output, 
-                                    fwg, parameters['detection_band_combination'])
-
+                                    margin, m_output, 
+                                    fwg, parameters['det_combination'])
+                            fwg.close()
                             # Find the input magnitude bin of m_in and add the
                             # number of sources in each detection status for each bin.
                             # This is to combine the results from different iterations.
@@ -776,35 +813,29 @@ def main(minimal_file=True):
                                     dout[:,v] = dout[:,v] + nout_d
                             print('      round %d/%d, inject %d, detect %d, dropout %d (in magbins)'%
                                   (ir+1,nrounds, ninject, np.sum(nout_c),np.sum(nout_d)))
-                            #pdb.set_trace()
+                            
+                            #delete big files
                             if minimal_file is True:
-                                #pdb.set_trace()
                                 os.remove(parameters['path_to_results'] + 
                                     'Results/SegmentationMaps/Segmentation_maps_i' +
                                     '%d.%d'%(niter,ir)+ '_' + 
                                     parameters['detection_band'] + '.fits') 
-
-                                # for ib in range(parameters['n_bands']):
-                                #     os.remove(parameters['path_to_results'] +
-                                #         'Results/Dropouts/source_' +cat[ic] + 
-                                #         '_mag%.1f'%M_input[iM] + 
-                                #         '_z%.1f'%redshift +'_i' + 
-                                #         str(niter) + '.' + str(ir) + '_' + 
-                                #         parameters['bands'][ib] + '_cat.fits')
-                            #keep info of injected and sextracted galaxies
+                            # Only keep sextracted catalog of injected galaxies. 
+                            # Delete real sources that are originally there
                             for ib in range(parameters['n_bands']):
-                                delete_id_fits('%sResults/Dropouts/source_%s_mag%.1f_z%.1f_i%d.%d_%s_cat.fits'%
+                                delete_id_fits('%sResults/Catalogs/source_%s_mag%.1f_z%.2f_i%d.%d_%s_cat.fits'%
                                     (parameters['path_to_results'],cat[ic],
                                      M_input[iM],redshift,niter,ir,
                                      parameters['bands'][ib]), 
                                     id_nmbr, id_keep = True)
-                        #finished looping over rounds
-                        if totinject != ngals[iM]: pdb.set_trace()
-                    #finished looping over iterations
-                    #pdb.set_trace()    
-                #finished looping over input Magnitude bins
-                fwg.close()
+                        #finish looping over rounds
+                        if totinject != ngals[iM]:
+                            print('Number of injected galaxies is not equal to what expected')
+                            breakpoint()
+                    #finish looping over iterations
+                #finish looping over input Magnitude bins
                 
+                #write results to the overall output files
                 for s in range(nmagbins_in):
                      # Calculate fractions of different statuses.
                     identified_total[s] = (np.array(identified[s]) + 
@@ -814,8 +845,8 @@ def main(minimal_file=True):
                         np.array(total[s])
                     dropouts_fraction[s] = float(drops[s])/np.array(total[s])
                     
-                    total_completeness[s, iz] = identified_fraction[s]
-                    total_dropouts[s, iz] = dropouts_fraction[s]
+                    total_completeness[s, iz, ilf] = identified_fraction[s]
+                    total_dropouts[s, iz , ilf] = dropouts_fraction[s]
                     
                     line = ('%.2f\t%.2f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d'
                             '\t%d\t%f\t%f\n'%
@@ -838,11 +869,12 @@ def main(minimal_file=True):
                 fws.close()
                 fws2.close()
                 if parameters['dropouts'] is True: fws3.close()
+                
                 nout_completeness[:,:,iz,ilf] = nout
                 nout_dropouts[:,:,iz,ilf] = dout
-            #finished looping over LF            
-        #finished looping over redshift   
-        #saving results with pickles  
+            #finish looping over LF            
+        #finish looping over redshift   
+        #save overall output results with pickles  
         output_dict = {'Nin':Nin,'Nout_detect':nout_completeness,
                        'Nout_dropout':nout_dropouts,'magout':m_output,
                        'Magin':M_input,'redshift':z_total,
@@ -853,14 +885,11 @@ def main(minimal_file=True):
         pickle.dump(output_dict, outpicklefile)
         outpicklefile.close()
         
-        #Generate plots.
+        #Generate plots (Completeness as a function of input magnitude)
         plot_completeness.main(parameters['path_to_results'],
                                 parameters['LF_shape'],
-                                M_input, parameters['min_z'],
-                                parameters['max_z'], parameters['z_bins'],
-                                cat[ic], total_completeness, 
+                                M_input, z_total, cat[ic], total_completeness, 
                                 total_dropouts)
-
-    #finished looping over field
+    #finish looping over field
 if __name__ == "__main__":
-    main(minimal_file=True)
+    main(minimal_file=minimal_file,SExtractor_command=SExtractor_command)

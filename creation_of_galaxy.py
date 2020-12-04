@@ -110,7 +110,7 @@ def makeSersic(n0, bn0, re, ell, inc_angle, size_galaxy):
     Returns:
         fl (float) = Flux for each pixel.
     """
-    stamp = np.zeros((size_galaxy,size_galaxy))
+    stamp = np.zeros((size_galaxy,size_galaxy),dtype=np.float32)
     s2 = size_galaxy / 2
     major_axis = re
     minor_axis = re * (1.-ell)
@@ -120,7 +120,6 @@ def makeSersic(n0, bn0, re, ell, inc_angle, size_galaxy):
         y_aux = -(x-s2)*np.sin(inc_angle) + (y-s2)*np.cos(inc_angle)
         radius = np.sqrt((x_aux/major_axis)**2 + (y_aux/minor_axis)**2)
         return I_e * np.exp(-bn0*((radius)**(1./n0)))
-
     for i in range(size_galaxy):
         def g(x):
             return i - 1./2.
@@ -130,15 +129,16 @@ def makeSersic(n0, bn0, re, ell, inc_angle, size_galaxy):
             fl = scipy.integrate.dblquad(f, j-1./2., j+1./2., g, h, 
                                  epsabs=1.49e-08, epsrel=1.49e-08)[0]
             stamp[i,j] = fl
+    #breakpoint()
     return stamp
 
 
-def galaxies_positions(image_data, nsources, size, re):
+def galaxies_positions(image_data_file, nsources, size, re):
     """
     Provides the position in the image for the simulated galaxies.
     It will not placed on pixels with values = 0
     Args:
-        image_data (float array) = Science image. It corresponds to
+        image_data_file(string) = fits file for science image. It corresponds to
                                    an array with the counts value for
                                    each pixel.
         nsources (int) = Number of simulated galaxies per iteration.
@@ -148,20 +148,16 @@ def galaxies_positions(image_data, nsources, size, re):
         xpos (int) = Position of the simulated galaxy in the x axis.
         ypos (int) = Position of the simulated galaxy in the y axis.
     """
+    hdu_list = fits.open(image_data_file,ignore_missing_end=True)
+    image_data = hdu_list[0].data
+    hdu_list.close()
+    
     s2 = size / 2
     xpos, ypos = np.zeros(nsources), np.zeros(nsources)
-#    for i in range(nsources):
-#        xr, yr = 1141, 1156
-#        while ((xr == 0 and yr == 0) or image_data[xr, yr] == 0):
-#            xr = random.randrange(s2 + 1, image_data.shape[0] - s2 - 1, 1)
-#            yr = random.randrange(s2 + 1, image_data.shape[1] - s2 - 1, 1)
-#            if (image_data[xr, yr] != 0):
-#                xpos[i] = int(xr)
-#                ypos[i] = int(yr)
+    indices = np.arange(nsources)
     for j in range(nsources):
-        d2 = calculate_distance(xpos[j], ypos[j], xpos, ypos)
-        w1 = np.where(np.logical_and(np.array(d2) <= re,
-                      np.array(d2) > 0.0))[0]
+        d2 = calculate_distance(xpos[j], ypos[j], xpos, ypos) #distance btw that gal and other gals
+        w1 = np.where((np.array(d2) <= size) & (indices != j))[0] #where distances are less than 1 stamp size
         while ((xpos[j] == 0 and ypos[j] == 0) or
                (image_data[int(xpos[j]), int(ypos[j])] == 0) or
                (len(w1) >= 1)):
@@ -170,10 +166,7 @@ def galaxies_positions(image_data, nsources, size, re):
             xpos[j] = int(xr)
             ypos[j] = int(yr)
             d2 = calculate_distance(xpos[j], ypos[j], xpos, ypos)
-            w1 = np.where(np.logical_and(np.array(d2) <= 5 * re,
-                          np.array(d2) > 0.0))[0]
-    #xpos[0] = int(1138)
-    #ypos[0] = int(1152)
+            w1 = np.where((np.array(d2) <= size) & (indices != j))[0] 
     return xpos, ypos
 
 
@@ -194,7 +187,7 @@ def spectrum(a, x, b, redshift):
     return f
 
 
-def write_spectrum(mag, beta, redshift,absmag=False,refwl=1600,
+def write_spectrum(mag, beta,redshift,path,absmag=False,refwl=1600,
                    detectionband = ''):
     """
     Saves the spectrum (spec.fits) of the simulated Lyman break galaxy
@@ -214,7 +207,7 @@ def write_spectrum(mag, beta, redshift,absmag=False,refwl=1600,
                         reference in angstrom.
         detectionband (str) = Must provide if absmag is False. Name of the detection band.
     """
-    wavelength = np.arange(0, 30000, 1.)
+    wavelength = np.arange(1000, 30000, 1.) #observed wavelength
     if absmag:
         c = 2.99792458e18  # In angstrom
         Lumdis = cosmo.luminosity_distance(redshift).to(u.parsec).value
@@ -240,10 +233,11 @@ def write_spectrum(mag, beta, redshift,absmag=False,refwl=1600,
     hdu.header['CTYPE2'] = 'Flux'
     t = Table(data, names=('Wavelength', 'flux'))
     data = np.array(t)
-    fits.writeto('Files/spec.fits', data,header=None, overwrite=True)
+    fits.writeto('%sResults/images/spec_z%.2f.fits'%(path,redshift), data, 
+                 header=None, overwrite=True)
 
 
-def mag_band(name_band):
+def mag_band(name_band,redshift,path):
     """
     Calculate magnitude based on spectrum
     Args
@@ -252,16 +246,16 @@ def mag_band(name_band):
     Returns
         mag (float): Expected AB magnitude in "name_band".
     """
-    synth_spec = pysysp.StarSpectrum('Files/spec.fits')
+    synth_spec = pysysp.StarSpectrum('%sResults/images/spec_z%.2f.fits'%(path,redshift))
     flux = pysysp.BandPass('Files/' + name_band + '.tab')
     mag = synth_spec.apmag(flux, mag='AB') + 48.6
     return mag
 
-def absmag_refwl(redshift,refwl):
+def absmag_refwl(redshift,refwl,path):
     #Calculate absolute magnitude at refwl (rest frame) from spec.fits
     
     c = 2.99792458e18 #in angstrom/s
-    spec = pysysp.StarSpectrum('Files/spec.fits')
+    spec = pysysp.StarSpectrum('%sResults/images/spec_z%.2f.fits'%(path,redshift))
     flambda_e = (1+redshift)*np.interp(refwl*(1+redshift),
                  spec.wavelength[0],spec.flux[0])
     flambda_10pc = flambda_e*(cosmo.luminosity_distance(redshift).\
@@ -277,9 +271,10 @@ def schechter_func(m, mstar, alpha):
     f = 10**(0.4*(alpha+1.)*(mstar-m))*np.exp(-10**(0.4*(mstar-m)))
     return f
 
-def calphi(shapefn,redshift, slope=2):
+def calphi(shapefn,redshift,path, slope=2):
     """
-    calculate relative number of galaxies whose spectra is 'Files/spec.fits'
+    calculate relative number of galaxies whose spectra is 
+    %sResults/images/spec_z%.2f.fits'%(path,redshift)
     for a given LF, redshift 
     --input--
     shapefn (string) : current choices are 
@@ -291,7 +286,7 @@ def calphi(shapefn,redshift, slope=2):
     if shapefn.lower() == 'linear':
         constant = 1.
         refwl  = 1450.
-        absmag = absmag_refwl(redshift,refwl)
+        absmag = absmag_refwl(redshift,refwl,path)
         phi = (absmag+27.)*slope+constant  #use M=-27 as to make sure that phi is positive
         if phi < 0: phi = 1
         

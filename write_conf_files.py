@@ -56,7 +56,8 @@ def main(name_band, detection_band, zp, g, path_to_im, path_to_results,
                                                path_to_im, image_name, cat, 
                                                name_band, rmsfits_end)
                 
-        nf = open('SExtractor_files/parameters_' + name_band + '.sex', 'w')
+        nf = open('%sResults/SegmentationMaps/parameters_%s.sex'%
+                  (path_to_results,name_band), 'w')
         nf.writelines(k_new)
         nf.close()
     else:
@@ -77,7 +78,8 @@ def main(name_band, detection_band, zp, g, path_to_im, path_to_results,
                         rmsfits_end, path_to_im, image_name, cat, 
                         name_band, rmsfits_end)
                 
-        nf = open(('SExtractor_files/parameters_' + name_band + '.sex'), 'w')
+        nf = open('%sResults/SegmentationMaps/parameters_%s.sex'%
+                  (path_to_results,name_band), 'w')
         nf.writelines(k_new)
         nf.close()
 

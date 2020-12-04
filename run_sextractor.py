@@ -7,7 +7,8 @@ from subprocess import check_call
 from subprocess import PIPE
 def science_image(name_band, detection_band, zp, g, path_to_im, 
                   path_to_results, image_name, cat, imfits_end ='_v1_drz.fits', 
-                  rmsfits_end='_v1_rms_scl.fits'):
+                  rmsfits_end='_v1_rms_scl.fits',
+                  SExtractor_command='source-extractor'):
     """
     Runs SExtractor on the science image with the parameters given by the user
     and creates a catalog for the sources found in the image.
@@ -43,37 +44,39 @@ def science_image(name_band, detection_band, zp, g, path_to_im,
         # If the band SExtractor is running on is not the detection band,
         # run in dual mode with the detection band as reference.
         # NL changed to dual mode in either case cause SExtractor single mode
-        # gives different number of detections from dual mode!
+        # gives different number of detections from dual mode
+        pfile = '%sResults/SegmentationMaps/parameters_%s.sex'%(path_to_results,name_band[i])
         if (name_band[i] == detection_band or do_segmentation): 
-            p = check_call(['source-extractor ' + path_to_im + image_name + cat +'_' +
-                        detection_band + imfits_end+',' 
-                        + path_to_im + image_name + cat +'_' +
-                        name_band[i] + imfits_end+' -c SExtractor_files/' +
-                        'parameters_' + name_band[i] +
-                        '.sex -CHECKIMAGE_NAME ' + path_to_results +
-                        'SciImages/sources_' + cat + '_' + detection_band +
-                        '_segm.fits -CATALOG_NAME '+ path_to_results +
-                        'SciImages/sources_' + cat + '_' + name_band[i] +
-                        '_cat.fits'], bufsize=4096, stdin=PIPE, stdout=PIPE,
-                        close_fds=True, shell=True)
+            p = check_call([SExtractor_command+' ' + path_to_im + 
+                            image_name + cat +'_' +
+                            detection_band + imfits_end+',' 
+                            + path_to_im + image_name + cat +'_' +
+                            name_band[i] + imfits_end+' -c ' + pfile +
+                            ' -CHECKIMAGE_NAME ' + path_to_results +
+                            'SciImages/sources_' + cat + '_' + detection_band +
+                            '_segm.fits -CATALOG_NAME '+ path_to_results +
+                            'SciImages/sources_' + cat + '_' + name_band[i] +
+                            '_cat.fits'], bufsize=4096, stdin=PIPE, stdout=PIPE,
+                            close_fds=True, shell=True)
         else:
-            p = check_call(['source-extractor ' + path_to_im + image_name + cat+'_' +
-                        detection_band + imfits_end+',' + path_to_im + 
-                        image_name + cat + '_' + name_band[i] + imfits_end +
-                        ' -c SExtractor_files/parameters_' +
-                        name_band[i] + '.sex -CHECKIMAGE_NAME ' +
-                        path_to_results + 'SciImages/sources_' + cat + '_' +
-                        name_band[i] + '_segm.fits -CATALOG_NAME ' +
-                        path_to_results + 'SciImages/sources_' + cat + '_' +
-                        name_band[i]+'_cat.fits -VERBOSE_TYPE QUIET'], 
-                        bufsize=4096, stdin=PIPE, stdout=PIPE,
-                        close_fds=True, shell=True)
+            p = check_call([SExtractor_command+' ' + 
+                            path_to_im + image_name + cat+'_' +
+                            detection_band + imfits_end+',' + path_to_im + 
+                            image_name + cat + '_' + name_band[i] + imfits_end +
+                            ' -c ' + pfile +' -CHECKIMAGE_NAME ' +
+                            path_to_results + 'SciImages/sources_' + cat + '_' +
+                            name_band[i] + '_segm.fits -CATALOG_NAME ' +
+                            path_to_results + 'SciImages/sources_' + cat + '_' +
+                            name_band[i]+'_cat.fits -VERBOSE_TYPE QUIET'], 
+                            bufsize=4096, stdin=PIPE, stdout=PIPE,
+                            close_fds=True, shell=True)
         print(".", end = '')
     print('')
     
 def main(name_band, detection_band, zp, g, path_to_im, path_to_results, 
          niter, image_name, cat, m1, redshift, 
-         rmsfits_end = '_v1_rms_scl.fits', roundnum = 0, do_segmentation=False):
+         rmsfits_end = '_v1_rms_scl.fits', roundnum = 0, 
+         do_segmentation=False,SExtractor_command='source-extractor'):
     """
     Runs SExtractor on the new image containing the simulated galaxies
     with the parameters given by the user and creates a new catalog for
@@ -106,17 +109,17 @@ def main(name_band, detection_band, zp, g, path_to_im, path_to_results,
     # identify the sources.
     # NL changed to dual mode cause SExtractor single and dual mode give 
     # different number of detections!
-    p = check_call(['source-extractor ' + path_to_results + 'Results/images/'
-                        'sersic_sources_' + cat + '_' + detection_band + '.fits, '
-                        + path_to_results + 'Results/images/sersic_sources_' 
-                        + cat + '_' + name_band + '.fits -c '
-                        'SExtractor_files/parameters_' + name_band +
-                        '.sex -CATALOG_NAME ' + path_to_results + 
-                        'Results/Dropouts/source_' + cat + '_mag%.1f'%(m1) + 
-                        '_z%.1f'%(redshift) +'_i' + str(niter) + '.' + 
-                        str(roundnum) + '_' + name_band + 
-                        '_cat.fits -VERBOSE_TYPE QUIET'], 
-                       bufsize=4096, stdin=PIPE, stdout=PIPE, close_fds=True,
-                       shell=True)
+    pfile = '%sResults/SegmentationMaps/parameters_%s.sex'%(path_to_results,name_band)
+    p = check_call([SExtractor_command+' ' + path_to_results + 'Results/images/'
+                    'sersic_sources_' + cat + '_' + detection_band + '.fits, '
+                    + path_to_results + 'Results/images/sersic_sources_' 
+                     + cat + '_' + name_band + '.fits -c ' + pfile +
+                     ' -CATALOG_NAME ' + path_to_results + 
+                     'Results/Catalogs/source_' + cat + '_mag%.1f'%(m1) + 
+                     '_z%.2f'%(redshift) +'_i' + str(niter) + '.' + 
+                     str(roundnum) + '_' + name_band + 
+                     '_cat.fits -VERBOSE_TYPE QUIET'], 
+                    bufsize=4096, stdin=PIPE, stdout=PIPE, close_fds=True,
+                    shell=True)
     
 

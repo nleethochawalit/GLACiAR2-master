@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def main(path_to_cat,LF_shape, xarr, ymin, ymax, zbins, cat, 
+def main(path_to_cat,LF_shape, xarr, yarr, cat, 
          cs, ds, plotline = None):
     """
     Generates plots for C(m), S(z,m), and S(z,m)C(m)
@@ -25,16 +25,17 @@ def main(path_to_cat,LF_shape, xarr, ymin, ymax, zbins, cat,
     """
 
     x = xarr
-    y = np.linspace(ymin, ymax, zbins)
+    y = yarr
     xmin = np.min(x)
     xmax = np.max(x)
+    ymin = np.min(y)
+    ymax = np.max(y)
     spacing_x = round(5*(np.amax(x) - np.amin(x))/len(x), 1)
-    spacing_y = round(5*(ymax - ymin)/(zbins), 1)
+    spacing_y = round(5*(np.amax(y) - np.amin(y))/len(y), 1)
 
-    with np.errstate(divide='ignore', invalid='ignore'):
-        csm = np.true_divide(ds, cs)  # cover in case of division by 0.
 
     for lf in range(len(LF_shape)):
+        plt.figure(figsize=(6,6))
         plt.imshow(cs[:,:,lf], extent=[min(y), max(y), max(x), min(x)], cmap='RdPu',
                    origin="upper")
         plt.xlabel('$z$', fontsize=16)
@@ -50,6 +51,7 @@ def main(path_to_cat,LF_shape, xarr, ymin, ymax, zbins, cat,
         # Enter the IF below any dropout is different than 0 ()
         curds = ds[:,:,lf]
         if np.sum(curds) != 0.0:
+            plt.figure(figsize=(6,6))
             plt.imshow(curds, extent=[min(y), max(y), max(x), min(x)],
                        cmap='GnBu', origin="upper")
             plt.xlabel('$z$', fontsize=16)
@@ -60,13 +62,4 @@ def main(path_to_cat,LF_shape, xarr, ymin, ymax, zbins, cat,
             plt.savefig(path_to_cat+'Results/Plots/Dropouts_Field'+cat+'_'+LF_shape[lf]+'.pdf')
             plt.close()
     
-            plt.imshow(csm[:,:,lf], extent=[min(y), max(y), max(x), min(x)],
-                       cmap='YlGn', origin="upper")
-            plt.xlabel('$z$', fontsize=16)
-            plt.ylabel('Input Absolute Magnitude', fontsize=16)
-            plt.yticks(np.arange(xmin, xmax, spacing_x), fontsize=16)
-            plt.xticks(np.arange(ymin, ymax, spacing_y), fontsize=16)
-            plt.colorbar().set_label(label='$S(z,m)$', size=16)
-            plt.savefig(path_to_cat+'Results/Plots/CS_Field'+cat+'_'+LF_shape[lf]+'.pdf')
-            plt.close()
         

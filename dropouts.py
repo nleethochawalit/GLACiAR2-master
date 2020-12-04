@@ -31,7 +31,7 @@ def drop_borg25(mag_aper, sn_aper1, st, magbins, redshift):
                     if sn_aper1[i,0]<1.5: 
                         drops[i] = -1
                     if sn_aper1[i,0]<1: 
-                        drops[i] = 1
+                        drops[i] = 8
           
             #Check for Jband dropout
             if ((drops[i] == 0) and
@@ -46,7 +46,7 @@ def drop_borg25(mag_aper, sn_aper1, st, magbins, redshift):
                     if sn_aper1[i,0]<1.5: 
                         drops[i] = -2
                     if sn_aper1[i,0]<1: 
-                        drops[i] = 2
+                        drops[i] = 9
             #Check for Hband dropout
             if ((drops[i] == 0) and
                 (sn_aper1[i,3] >6) and
@@ -56,7 +56,7 @@ def drop_borg25(mag_aper, sn_aper1, st, magbins, redshift):
                         drops[i] = -3
                     if ((sn_aper1[i,0]<1) and (sn_aper1[i,1]<1) 
                         and (sn_aper1[i,3]<1)): 
-                        drops[i] = 3
+                        drops[i] = 10
         
     return drops
 
@@ -174,7 +174,7 @@ def drop_hlf(mag_iso, mag_auto, mag_aper1, mag_aper2,
     return drops
 
 def main(mag_iso, mag_auto, mag_aper1, mag_aper2, sn_iso, sn_aper1, sn_aper2, 
-         st, magbins, redshift, droptype):
+         st, magbins, redshift):
     """
     Dropout selection for galaxies from BoRG at z~10
     Args:
@@ -195,15 +195,8 @@ def main(mag_iso, mag_auto, mag_aper1, mag_aper2, sn_iso, sn_aper1, sn_aper2,
     Returns:
         drops (int array) = array of size st. 1 if it's a dropout. 0 if it's not.
     """
-    if droptype.lower() == 'borg':
-        drops = drop_borg(mag_iso, mag_auto, sn_iso, st, magbins, redshift)
-    if droptype.lower() == 'candels':
-        drops = drop_candels(mag_iso, mag_auto, sn_iso, st, magbins, redshift)
-    if droptype.lower() == 'hlf':
-        drops = drop_hlf(mag_iso, mag_auto, mag_aper1, mag_aper2, 
-                         sn_iso, sn_aper1, sn_aper2, st)
-    if droptype.lower() == 'borg25':
-        drops = drop_borg25(mag_aper1, sn_aper1, st, magbins, redshift)    
+    drops = drop_borg(mag_iso, mag_auto, sn_iso, st, magbins, redshift)
+        
     return drops
 
 if __name__ == "__main__":

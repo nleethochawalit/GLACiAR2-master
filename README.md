@@ -234,3 +234,10 @@ One last table, which is useful for redshift selection, is produced. Given that 
 - **Plots**
 
 ``GLACiAR`` also produces a plot of the completeness and two extra plots if the boolean dropouts parameters is set to True. The first plot corresponds to the completeness function C(m) as a function of the magnitude and the redshift. The second and third plot are the S(z,m) and S(z,m)C(m). This is only produced in case the dropout technique is applied, but given the tables produced by ``GLACiAR``, it is easily calculable with the final catalogues.
+
+**Note on pysysp package***
+The current version from pip install pysysp is for python2. To make the code runs, a few lines in the installed pysysp need to be changed.
+1. In pysysp.py, change "import pyfits" to "import astropy.io.fits as pyfits"
+2. In pysysp.py, change "import extinction as extlaws" to "from . import extinction as extlaws"
+3. In __init__.py, chage "from pysysp import StarSpectrum, BandPass, showfilters, listlaws" to "from .pysysp import StarSpectrum, BandPass, showfilters, listlaws"
+
