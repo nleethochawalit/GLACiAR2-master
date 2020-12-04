@@ -39,8 +39,8 @@ Modify or create a yaml parameter file (e.g. 'parameters.yaml').
     - *linear* The number of galaxies in each magnitude bin follows a linear function with a slope *lin_slope*. ach M<sub>UV</sub> is also sampled from the linear function.
     - *exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. Each M<sub>UV</sub> is also sampled from the exponential function.  
 For the latter three options, the number of the injected galaxies in the brightest input magnitude bin is *n_galaxies* x *n_iterations*. Use these features with caution because the number of injected galaxies can get extremely large.
-- *n_galaxies:* When *LF_shape* is *flat* or *schechter_flat*, it is the number of galaxies to be injected per image per iteration. Otherwise, it is the number of galaxies to be injected per iteration at the brightest magnitude bin -- see above (default=100.
-- *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude. The magnitude of the galaxies injected in each iteration will be drawn based on the specified LF_shape. (default = 20).
+- *n_galaxies:* When *LF_shape* is *flat* or *schechter_flat*, it is the number of galaxies to be injected per image per iteration. Otherwise, it is the number of galaxies to be injected per iteration at the brightest magnitude bin -- see above (default=100).
+- *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude. The magnitude of the galaxies injected in each iteration will be drawn based on the specified LF_shape (default = 20).
 - *n_inject_max* Optional parameter to specify the maximum number of galaxies to inject at once. If the number of galaxies to be injected in an iteration is larger than this number, the code will inject the galaxies in batches to avoid overcrowding the image with the injected sources (default = *n_galaxies*). 
 - *mag_bins:* The numbers of magnitude bins wanted. For a simulation run from m1 = 24.0 to m2 = 30.0 in steps of 0.5 magnitudes, there will be 13 bins (default = 13).
 - *min_mag:* Brightest observed magnitude of the simulated galaxies (default = 24.0).  see *extended_mag_bins_low/high*
@@ -51,26 +51,25 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *max_z:* Maximum redshift of the simulated galaxies (default = 9.0).
 - *ref_uv_wl:* The wavelength in angstrom at which M<sub>UV</sub> is determined (default = 1600). 
 - *n_bands:* How many filters the images have been observed in. If not specified, it will raise an error.
-- *detection_band:* This is the band in which the objects are identified. If the detection image is a coadd of multiple bands, put *det*. If not specified, it will raise an error.
+- *detection_band:* This is the band in which the objects are identified. If the detection image is a coadd of multiple bands, put 'det'. If not specified, it will raise an error.
 - *bands:* Name of the bands. If the *detection_band* is not 'det', the detection band has to go first. If not specified, it will raise an error.
 - *detection_band_combination:* Required if detection_band is 'det'. List of bands used in coadding to create the detection image.
 - *coadd_type:* Required if detection_band is 'det'. 1 for a simple coadd, 2 for a noise-equalized coadd (e.g. Whitaker2019). 
 - *zeropoints:* Zeropoint value corresponding to each band. The default value is 25 for each band. They are used to assign pixel values of the simulated galaxies and run SExtractor (Default = 25.0).
-- *gain_values:* Gain values for each band. If not specified, it will raise an error.  This will be put in SExtractor configuration file.
+- *gain_values:* Gain values for each band. If not specified, it will raise an error. The gain values will be used in the SExtractor configuration file.
 - *size_pix:* Pixel scale in arcsecond for the images (default = 0.08).
 - *margin:* margin in arcsecond where a box of size 2*margin around the injected position will be searched for a source (sources) in the Sextracted file. The selected source will be the source in this search box whose position is closest to the injected position.
 - *list_of_fields:* Text file containing the name of the fields where the simulation is going to be run. If not specified, it will raise an error.
 - *path_to_images:* Directory where the science images are located.
 - *path_to_results:* Directory where outputs will be placed. If not specified, it will raise an error.
-- *R_eff:* Effective radius in kpc. It is the half light radius, i. e., the radius within half of the light emitted by the galaxy is enclosed (default = 1.075).
 - *image_name:* Heading name of the images. The naming of all science and rms images should be as follows: *image_name*_{field name}_{band name}+*imfits_end* (or *rmsfits_end* (required).
 - *imfits_end:* See above for the naming of the files.
 - *rmsfits_end':* See above for the naming of the files.
-- *fixed_psf:* Name of the psf file if the images are psf matched. The file should be put in folder Files. Leave as blank if the images are not psf-match. In that case, each image will be convolved with psf_*band*.fits instead.
-- *R_eff:* Effective radius at redshift 6 in kpc (default = 1.075)
+- *fixed_psf:* If the images are psf-matched, put name of the common psf file here. The psf image should be put in folder Files. Leave as blank if the images are not psf-match. In that case, each image will be convolved with 'psf_*band*.fits' instead.
+- *R_eff:* Effective radii of the galaxies at redshift 6 in kpc (default = 1.075).
 - *beta_mean:* Mean of the UV slope. The injected galaxies will have spectra with slopes drawn from this mean.
 - *beta_sd:* Standard deviation of the UV slopes. 
-- *types_galaxies*: Number of different galaxy light profiles to be created per injection. (default = 2)
+- *types_galaxies*: Number of different galaxy light profiles to be created per injection (default = 2).
 - *sersic_indices:* Corresponding Sérsic indices for each *types_galaxies* (default = [1,4]).
 - *fraction_type_of_galaxies:* Fraction of galaxies corresponding the the Sérsic indices given (default = [0.5,0.5]). The sum must be 1.
 - *de_Vacouleur:* True of False. If true, when sersic indices == 4, the de Vacouleur profile will be used instead. (default = True).
@@ -78,30 +77,26 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *ebins:* number of eccentricities. The galaxies will be created for ebins eccentricities ranging from 0 to 1.
 - *min_sn:* Minimum (isophotal) signal to noise ratio in the detection band (or the first band listed in detection_band_combination) for a galaxy to be considered detected. All detected galaxies that are not blended will be run through dropout selection. So if you have S/N criteria in the dropout selection, make sure that this min_sn is safely smaller than those in the dropout selection. (default = 3.0) 
 - *dropouts:* True or False. Boolean that indicates whether the user wants to run a dropout selection (default = False).
-- *droptype:* Type of dropout. See dropouts.py You can make your own!
-- *extended_mag_bins_low:* Number of bins to be extended from min_mag. Type = int. (default = 1)
-- *extended_mag_bins_high:* Number of bins to be extended from min_mag. Type = int. (default = 1)
+- *droptype:* Type of dropout. See dropouts.py You can customize the dropout selection criteria.
 - *lin_slope:* Will be used if LF_shape is 'linear'
 - *exp_base:* Will be used if LF_shape is 'exp'
-- *n_inject_max:* When LF_shape is not 'flat', each iteration in some magnitude bins can have more galaxies than n_galaxies. In that case, each iteration will be by default divided into rounds where n_galaxies will be created. However, if the image is large enough, one can bypass this by putting n_inject_max that is higher than n_galaxies. (default = n_galaxies).
 
 Files
 ----------
 
-Files required to run ``GLACiAR``.
+Files required to run ``GLACiAR2``.
 
-
-- Science images: Files with the observed images of the survey including all the fields and filters. It typically includes several files of each type, although one of each is enough.
+- Science images: Files with the observed images of the survey including all the fields and filters. 
 
 - List: Text file with the names of the fields from the survey. This list is given as an input parameter. Its minimum length is one, i.e. the name of one field.
 
-- SExtractor parameters: As previously explained, one of the steps of the code involves running ``SExtractor`` on the images (original and with simulated galaxies). To run the software, a file defining the parameters is required. There is an example provided under ``SExtractor\_files``, but we recommend for the user to change it according to their data.
+- SExtractor parameters: As previously explained, one of the steps of the code involves running ``SExtractor`` on the original images and the images with simulated galaxies. To run the software, a file defining the parameters is required. There is an example provided under ``SExtractor\_files``, but we recommend for the user to change it according to their data.
 
-- RMS maps or weight maps: They describe the noise intensity at each pixel in relation to the science image. Although they are necessary only if required for the SExtractor parameters, it is strongly recommended that one of these is used in order to improve the source detection.
+- RMS maps: They describe the noise intensity at each pixel in relation to the science image. Although they are necessary only if required for the SExtractor parameters, it is strongly recommended that one of these is used in order to improve the source detection.
 
-- PSF: Image of the PSF that we'll be used to convolve with the simulated galaxy. It depends on the instrument, telescope, and filter. Some PSFs are included with ``GLACiAR``, but users should add theirs if needed.
+- PSF: Image of the PSF that we'll be used to convolve with the simulated galaxy. It depends on the instrument, telescope, and filter. If the images are not PSF-matched, provide one PSF for each band with in Files directory with the name ``psf_{band name}.fits``. If the images are PSF matched, provide one PSF image and specify the filename under *fixed_psf* in the parameter file.
 
-- Filter throughputs: throughput of each band. They are needed to be placed in Files diectory. Most of the hst bands are provided. See these example for format.
+- Filter throughputs: throughput of each band. They are needed to be placed in Files directory with the name ``{band name}.tab``. Most of the hst bands are provided. See these example for format.
 
 Modules
 ----------
