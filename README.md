@@ -29,7 +29,7 @@ Running GLACiAR
 Parameters
 ----------
 
-Modify the parameters file 'parameters.yaml'.
+Modify or create a yaml parameter file (e.g. 'parameters.yaml').
 
 **Parameters files**
 - *LF_shape:* List of the underlying distributions of the injected galaxies. The choices are the following (default = *schechter_flat*).
@@ -56,15 +56,16 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *detection_band_combination:* Required if detection_band is 'det'. List of bands used in coadding to create the detection image.
 - *coadd_type:* Required if detection_band is 'det'. 1 for a simple coadd, 2 for a noise-equalized coadd (e.g. Whitaker2019). 
 - *zeropoints:* Zeropoint value corresponding to each band. The default value is 25 for each band. They are used to assign pixel values of the simulated galaxies and run SExtractor (Default = 25.0).
-- *list_of_fields:* Text file containing the name of the fields where the simulation is going to be run. If not specified, it will raise an error.
 - *gain_values:* Gain values for each band. If not specified, it will raise an error.  This will be put in SExtractor configuration file.
-- *R_eff:* Effective radius in kpc. It is the half light radius, i. e., the radius within half of the light emitted by the galaxy is enclosed (default = 1.075).
 - *size_pix:* Pixel scale in arcsecond for the images (default = 0.08).
+- *margin:* margin in arcsecond where a box of size 2*margin around the injected position will be searched for a source (sources) in the Sextracted file. The selected source will be the source in this search box whose position is closest to the injected position.
+- *list_of_fields:* Text file containing the name of the fields where the simulation is going to be run. If not specified, it will raise an error.
 - *path_to_images:* Directory where the science images are located.
 - *path_to_results:* Directory where outputs will be placed. If not specified, it will raise an error.
-- *image_name:* Name of the images. They all should have the same name at the begining of the file. For example: borg_field1_f160w_drz_sci.fits = "image_name+fieldname+'_'+band+'_'+imfits_end"
-- *imfits_end:* See above for the file names
-- *rmsfits_end':* Name of the rms/weight image ending. For example: _drz_rms_sclv2.fits. The rms files will be used in Sextracting only. If the WEIGHT_TYPE in the sextractor configuration file is MAP_RMS then these images should be rms maps. If it is MAP_WEIGHT then these images should be weight maps.
+- *R_eff:* Effective radius in kpc. It is the half light radius, i. e., the radius within half of the light emitted by the galaxy is enclosed (default = 1.075).
+- *image_name:* Heading name of the images. The naming of all science and rms images should be as follows: *image_name*_{field name}_{band name}+*imfits_end* (or *rmsfits_end* (required).
+- *imfits_end:* See above for the naming of the files.
+- *rmsfits_end':* See above for the naming of the files.
 - *fixed_psf:* Name of the psf file if the images are psf matched. The file should be put in folder Files. Leave as blank if the images are not psf-match. In that case, each image will be convolved with psf_*band*.fits instead.
 - *R_eff:* Effective radius at redshift 6 in kpc (default = 1.075)
 - *beta_mean:* Mean of the UV slope. The injected galaxies will have spectra with slopes drawn from this mean.
@@ -75,7 +76,6 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *de_Vacouleur:* True of False. If true, when sersic indices == 4, the de Vacouleur profile will be used instead. (default = True).
 - *ibins:* number of inclinations. The galaxies will be created for ibins inclinations with values [0,1,..,ibins-1]*0.5pi/ibins
 - *ebins:* number of eccentricities. The galaxies will be created for ebins eccentricities ranging from 0 to 1.
-- *margin:* margin in arcsecond where a box of size 2*margin around the injected position will be searched for a source (sources) in the Sextracted file. The selected source will be the source with the closest position to the injected position within this search box.
 - *min_sn:* Minimum (isophotal) signal to noise ratio in the detection band (or the first band listed in detection_band_combination) for a galaxy to be considered detected. All detected galaxies that are not blended will be run through dropout selection. So if you have S/N criteria in the dropout selection, make sure that this min_sn is safely smaller than those in the dropout selection. (default = 3.0) 
 - *dropouts:* True or False. Boolean that indicates whether the user wants to run a dropout selection (default = False).
 - *droptype:* Type of dropout. See dropouts.py You can make your own!
