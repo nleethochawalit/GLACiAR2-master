@@ -1,4 +1,4 @@
-# GLACiAR
+# GLACiAR2
 
 Overview 
 ----------
@@ -33,11 +33,11 @@ Modify the parameters file 'parameters.yaml'.
 
 **Parameters files**
 - *LF_shape:* List of the underlying distributions of the injected galaxies. The choices are the following.
-  ..1.*flat* - All input magnitude bins have the same number of injected galaxies, equal to *n_galaxies*x*n_iterations*. Each M<sub>UV</sub> is sampled from a uniform distribution.
-  ..2.*schechter_flat* - All input magnitude bins have the same number of injected galaxies but each M<sub>UV</sub> is sampled from the Schechter function specified in 'LF_Schechter_params.txt'
-  ..3.*schechter* The number of galaxies in each magnitude bin follows the specified Schechter function. Each M<sub>UV</sub> is also sampled from the Schechter function.
-  ..4.*linear* The number of galaxies in each magnitude bin follows a linear function with a slope *lin_slope*. ach M<sub>UV</sub> is also sampled from the linear function.
-  ..5.*exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. ach M<sub>UV</sub> is also sampled from the exponential function...
+    - *flat* - All input magnitude bins have the same number of injected galaxies, equal to *n_galaxies*x*n_iterations*. Each M<sub>UV</sub> is sampled from a uniform distribution.
+    - *schechter_flat* - All input magnitude bins have the same number of injected galaxies but each M<sub>UV</sub> is sampled from the Schechter function specified in 'LF_Schechter_params.txt'
+    - *schechter* The number of galaxies in each magnitude bin follows the specified Schechter function. Each M<sub>UV</sub> is also sampled from the Schechter function.
+    - *linear* The number of galaxies in each magnitude bin follows a linear function with a slope *lin_slope*. ach M<sub>UV</sub> is also sampled from the linear function.
+    - *exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. ach M<sub>UV</sub> is also sampled from the exponential function.  
 For the latter three options, the number of the injected galaxies in the brightest input magnitude bin is *n_galaxies*x*n_iterations*. Use these features with caution because the number of injected galaxies can get extremely large.
 - *n_galaxies:* Number of galaxies to place in each iteration. In each iteration, the galaxies will have the same spectrum but different light profiles, elipticities, inclinations. (default = 100). See LF_shape and n_inject_max. Type = int.
 - *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude bin. The magnitude for each iteration will be drawn based on the specified LF_shape. (default = 100).
