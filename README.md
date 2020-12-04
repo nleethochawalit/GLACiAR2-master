@@ -3,19 +3,17 @@
 Overview 
 ----------
 
-``GLACiAR2`` is an open-source python3 tool for simulations of source recovery and completeness in galaxy surveys.
-It's an updated version of GLACiAR (https://arxiv.org/abs/1805.08985, https://github.com/danielacarrasco/GLACiAR).
+``GLACiAR2`` is an open-source python3 tool for injection-recovery simulations that determine completeness in galaxy surveys.
+It's an updated version of GLACiAR developped by Carrasco et al. 2018 (https://arxiv.org/abs/1805.08985, https://github.com/danielacarrasco/GLACiAR).
 
 Requirements
 ----------
 
-To install ``GLACiAR2``, users should download the source from GitHub.
-
 Python and SExtractor are required to run the program. We also recommend DS9 to visualise the images.
 
-We suggest users download Anaconda https://www.anaconda.com/download/ which includes all the softwares needed to run ``GLACiAR``. 
+We suggest users to download Anaconda https://www.anaconda.com/download/ which includes all the softwares needed to run ``GLACiAR``. 
 
-``GLACiAR2`` uses a module that may not be included in most python installations, which is pysysp. 
+``GLACiAR2`` uses a module that may not be included in most python installations, which is pysysp. User may need to edit the source code of pysysp so that it is compatible with python3. 
 
 Running GLACiAR 
 ----------
@@ -34,7 +32,13 @@ Parameters
 Modify the parameters file 'parameters.yaml'.
 
 **Parameters files**
-
+- *LF_shape:* List of the underlying distributions of the injected galaxies. The choices are the following.
+  ..1.*flat* - All input magnitude bins have the same number of injected galaxies, equal to *n_galaxies*x*n_iterations*. Each M<sub>UV</sub> is sampled from a uniform distribution.
+  ..2.*schechter_flat* - All input magnitude bins have the same number of injected galaxies but each M<sub>UV</sub> is sampled from the Schechter function specified in 'LF_Schechter_params.txt'
+  ..3.*schechter* The number of galaxies in each magnitude bin follows the specified Schechter function. Each M<sub>UV</sub> is also sampled from the Schechter function.
+  ..4.*linear* The number of galaxies in each magnitude bin follows a linear function with a slope *lin_slope*. ach M<sub>UV</sub> is also sampled from the linear function.
+  ..5.*exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. ach M<sub>UV</sub> is also sampled from the exponential function...
+For the latter three options, the number of the injected galaxies in the brightest input magnitude bin is *n_galaxies*x*n_iterations*. Use these features with caution because the number of injected galaxies can get extremely large.
 - *n_galaxies:* Number of galaxies to place in each iteration. In each iteration, the galaxies will have the same spectrum but different light profiles, elipticities, inclinations. (default = 100). See LF_shape and n_inject_max. Type = int.
 - *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude bin. The magnitude for each iteration will be drawn based on the specified LF_shape. (default = 100).
 - *mag_bins:* The numbers of magnitude bins wanted. For a simulation run from m1 = 24.0 to m2 = 25.0 in steps of 0.2 magnitudes, there will be 6 bins (default = 20).
