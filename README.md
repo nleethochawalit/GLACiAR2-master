@@ -32,18 +32,19 @@ Parameters
 Modify the parameters file 'parameters.yaml'.
 
 **Parameters files**
-- *LF_shape:* List of the underlying distributions of the injected galaxies. The choices are the following.
-    - *flat* - All input magnitude bins have the same number of injected galaxies, equal to *n_galaxies*x*n_iterations*. Each M<sub>UV</sub> is sampled from a uniform distribution.
+- *LF_shape:* List of the underlying distributions of the injected galaxies. The choices are the following (default = *schechter_flat*).
+    - *flat* - All input magnitude bins have the same number of injected galaxies, equal to *n_galaxies* x *n_iterations*. Each M<sub>UV</sub> is sampled from a uniform distribution.
     - *schechter_flat* - All input magnitude bins have the same number of injected galaxies but each M<sub>UV</sub> is sampled from the Schechter function specified in 'LF_Schechter_params.txt'
     - *schechter* The number of galaxies in each magnitude bin follows the specified Schechter function. Each M<sub>UV</sub> is also sampled from the Schechter function.
     - *linear* The number of galaxies in each magnitude bin follows a linear function with a slope *lin_slope*. ach M<sub>UV</sub> is also sampled from the linear function.
     - *exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. ach M<sub>UV</sub> is also sampled from the exponential function.  
-For the latter three options, the number of the injected galaxies in the brightest input magnitude bin is *n_galaxies*x*n_iterations*. Use these features with caution because the number of injected galaxies can get extremely large.
-- *n_galaxies:* Number of galaxies to place in each iteration. In each iteration, the galaxies will have the same spectrum but different light profiles, elipticities, inclinations. (default = 100). See LF_shape and n_inject_max. Type = int.
-- *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude bin. The magnitude for each iteration will be drawn based on the specified LF_shape. (default = 100).
-- *mag_bins:* The numbers of magnitude bins wanted. For a simulation run from m1 = 24.0 to m2 = 25.0 in steps of 0.2 magnitudes, there will be 6 bins (default = 20).
-- *min_mag:* Brightest observed magnitude of the simulated galaxies (default = 24.1).  see *extended_mag_bins_low/high*
-- *max_mag:* Faintest observed magnitude of the simulated galaxies (default = 27.9).
+For the latter three options, the number of the injected galaxies in the brightest input magnitude bin is *n_galaxies* x *n_iterations*. Use these features with caution because the number of injected galaxies can get extremely large.
+- *n_galaxies:* When *LF_shape* is *flat* or *schechter_flat*, it is the number of galaxies to be injected per image per iteration. Otherwise, it is the number of galaxies to be injected per iteration at the brightest magnitude bin -- see above (default=100.
+- *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude. The magnitude of the galaxies injected in each iteration will be drawn based on the specified LF_shape. (default = 20).
+- *n_inject_max* Optional parameter to specify the maximum number of galaxies to inject at once. If the number of galaxies to be injected in an iteration is larger than this number, the code will inject the galaxies in batches to avoid overcrowding the image with the injected sources (default = *n_galaxies*). 
+- *mag_bins:* The numbers of magnitude bins wanted. For a simulation run from m1 = 24.0 to m2 = 30.0 in steps of 0.5 magnitudes, there will be 13 bins (default = 13).
+- *min_mag:* Brightest observed magnitude of the simulated galaxies (default = 24.0).  see *extended_mag_bins_low/high*
+- *max_mag:* Faintest observed magnitude of the simulated galaxies (default = 30.0).
 - *z_bins:* The numbers of redshift bins wanted. For a simulation run from z1 = 9.5 to m2 = 10.5 in steps of 0.2 magnitudes, there will be 6 bins (default = 15).
 - *z_bins* Number of redshift bins (default = 16)
 - *min_z:* Minimum redshift of the simulated galaxies (default = 8.5).
