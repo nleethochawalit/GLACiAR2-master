@@ -9,13 +9,13 @@ It's an updated version of GLACiAR (https://arxiv.org/abs/1805.08985, https://gi
 Requirements
 ----------
 
-To install ``GLACiAR``, users should download the source from GitHub.
+To install ``GLACiAR2``, users should download the source from GitHub.
 
 Python and SExtractor are required to run the program. We also recommend DS9 to visualise the images.
 
 We suggest users download Anaconda https://www.anaconda.com/download/ which includes all the softwares needed to run ``GLACiAR``. 
 
-``GLACiAR`` uses a module that may not be included in most python installations, which is pysysp. 
+``GLACiAR2`` uses a module that may not be included in most python installations, which is pysysp. 
 
 Running GLACiAR 
 ----------
