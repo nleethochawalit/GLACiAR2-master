@@ -24,7 +24,7 @@ Running GLACiAR
 4. Make sure that the throughput tables for all bands and the PSF images specific to the observation are in the 'Files' folder.
 5. Modify the SExtractor file 'parameters.sex' in the folder 'SExtractor_files' if needed.
 5. Modify 'dropouts.py' if needed.
-6. Run 'python completeness.py -s source-extractor parameters.yaml'. The -s option is to input the command that runs SExtractor.
+6. Run 'python completeness.py -s source-extractor parameters.yaml'. The -s option is for inputting the command that runs SExtractor (default = 'source-extractor').
 
 Parameters
 ----------
@@ -47,13 +47,13 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *max_mag:* Faintest observed magnitude of the simulated galaxies (default = 30.0).
 - *z_bins:* The numbers of redshift bins wanted. For a simulation run from z1 = 9.5 to m2 = 10.5 in steps of 0.2 magnitudes, there will be 6 bins (default = 15).
 - *z_bins* Number of redshift bins (default = 16)
-- *min_z:* Minimum redshift of the simulated galaxies (default = 8.5).
+- *min_z:* Minimum redshift of the simulated galaxies (default = 7.5).
 - *max_z:* Maximum redshift of the simulated galaxies (default = 9.0).
 - *n_bands:* How many filters the images have been observed in. If not specified, it will raise an error.
-- *detection_band:* This is the band in which the objects are identified. It can be 'det' if the detection image is created by coadding different bands. If not specified, it will raise an error.
-- *bands:* Name of the bands. If detection_band is not 'det', the detection band has to go first. If not specified, it will raise an error.
+- *detection_band:* This is the band in which the objects are identified. If the detection image is a coadd of multiple bands, put *det*. If not specified, it will raise an error.
+- *bands:* Name of the bands. If the *detection_band* is not 'det', the detection band has to go first. If not specified, it will raise an error.
 - *detection_band_combination:* Required if detection_band is 'det'. List of bands used in coadding to create the detection image.
-- *coadd_type:* 1 if simple coadd, 2 if noise-equalized coadd (e.g. Whitaker2019). Type = int. 
+- *coadd_type:* 1 for a simple coadd, 2 for a noise-equalized coadd (e.g. Whitaker2019). 
 - *list_of_fields:* Text file containing the name of the fields where the simulation is going to be run. If not specified, it will raise an error.
 - *zeropoints:* Zeropoint value corresponding to each band. The default value is 25 for each band. This will be put in SExtractor configuration file.
 - *gain_values:* Gain values for each band. If not specified, it will raise an error.  This will be put in SExtractor configuration file.
