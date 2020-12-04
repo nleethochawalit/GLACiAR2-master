@@ -3,8 +3,8 @@
 Overview 
 ----------
 
-``GLACiAR2`` is an open-source python tool for simulations of source recovery and completeness in galaxy surveys.
-It's developed from GLACiAR (https://arxiv.org/abs/1805.08985).
+``GLACiAR2`` is an open-source python3 tool for simulations of source recovery and completeness in galaxy surveys.
+It's an updated version of GLACiAR (https://arxiv.org/abs/1805.08985, https://github.com/danielacarrasco/GLACiAR).
 
 Requirements
 ----------
@@ -21,10 +21,12 @@ Running GLACiAR
 ----------
 
 1. Download the source code from GitHub
-2. Modify the 'parameters.yaml' file accordingly.
+2. Modify or create a parameter file (e.g. 'parameters.yaml').
 3. Create a directory that contains the images for all different fields and bands required. In this directory, a subfolder 'Results' will be created by ``GLACiAR``. All the files created will be saved here. 
+4. Make sure that the throughput tables for all bands and the PSF images specific to the observation are in the 'Files' folder.
+5. Modify the SExtractor file 'parameters.sex' in the folder 'SExtractor_files' if needed.
 5. Modify 'dropouts.py' if needed.
-6. Run 'completeness.py'
+6. Run 'python completeness.py -s source-extractor parameters.yaml'. The -s option is to input the command that runs SExtractor.
 
 Parameters
 ----------
