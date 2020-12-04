@@ -37,7 +37,7 @@ Modify the parameters file 'parameters.yaml'.
     - *schechter_flat* - All input magnitude bins have the same number of injected galaxies but each M<sub>UV</sub> is sampled from the Schechter function specified in 'LF_Schechter_params.txt'
     - *schechter* The number of galaxies in each magnitude bin follows the specified Schechter function. Each M<sub>UV</sub> is also sampled from the Schechter function.
     - *linear* The number of galaxies in each magnitude bin follows a linear function with a slope *lin_slope*. ach M<sub>UV</sub> is also sampled from the linear function.
-    - *exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. ach M<sub>UV</sub> is also sampled from the exponential function.  
+    - *exp* The number of galaxies in each magnitude bin follows an exponential function with an exponential base *exp_base*. Each M<sub>UV</sub> is also sampled from the exponential function.  
 For the latter three options, the number of the injected galaxies in the brightest input magnitude bin is *n_galaxies* x *n_iterations*. Use these features with caution because the number of injected galaxies can get extremely large.
 - *n_galaxies:* When *LF_shape* is *flat* or *schechter_flat*, it is the number of galaxies to be injected per image per iteration. Otherwise, it is the number of galaxies to be injected per iteration at the brightest magnitude bin -- see above (default=100.
 - *n_iterations:* Number of iterations, i.e., the number of times the simulation is going to be run on each image for galaxies with the same redshift and magnitude. The magnitude of the galaxies injected in each iteration will be drawn based on the specified LF_shape. (default = 20).
@@ -49,13 +49,14 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *z_bins* Number of redshift bins (default = 16)
 - *min_z:* Minimum redshift of the simulated galaxies (default = 7.5).
 - *max_z:* Maximum redshift of the simulated galaxies (default = 9.0).
+- *ref_uv_wl:* The wavelength in angstrom at which M<sub>UV</sub> is determined (default = 1600). 
 - *n_bands:* How many filters the images have been observed in. If not specified, it will raise an error.
 - *detection_band:* This is the band in which the objects are identified. If the detection image is a coadd of multiple bands, put *det*. If not specified, it will raise an error.
 - *bands:* Name of the bands. If the *detection_band* is not 'det', the detection band has to go first. If not specified, it will raise an error.
 - *detection_band_combination:* Required if detection_band is 'det'. List of bands used in coadding to create the detection image.
-- *coadd_type:* 1 for a simple coadd, 2 for a noise-equalized coadd (e.g. Whitaker2019). 
+- *coadd_type:* Required if detection_band is 'det'. 1 for a simple coadd, 2 for a noise-equalized coadd (e.g. Whitaker2019). 
+- *zeropoints:* Zeropoint value corresponding to each band. The default value is 25 for each band. They are used to assign pixel values of the simulated galaxies and run SExtractor (Default = 25.0).
 - *list_of_fields:* Text file containing the name of the fields where the simulation is going to be run. If not specified, it will raise an error.
-- *zeropoints:* Zeropoint value corresponding to each band. The default value is 25 for each band. This will be put in SExtractor configuration file.
 - *gain_values:* Gain values for each band. If not specified, it will raise an error.  This will be put in SExtractor configuration file.
 - *R_eff:* Effective radius in kpc. It is the half light radius, i. e., the radius within half of the light emitted by the galaxy is enclosed (default = 1.075).
 - *size_pix:* Pixel scale in arcsecond for the images (default = 0.08).
@@ -78,7 +79,6 @@ For the latter three options, the number of the injected galaxies in the brighte
 - *min_sn:* Minimum (isophotal) signal to noise ratio in the detection band (or the first band listed in detection_band_combination) for a galaxy to be considered detected. All detected galaxies that are not blended will be run through dropout selection. So if you have S/N criteria in the dropout selection, make sure that this min_sn is safely smaller than those in the dropout selection. (default = 3.0) 
 - *dropouts:* True or False. Boolean that indicates whether the user wants to run a dropout selection (default = False).
 - *droptype:* Type of dropout. See dropouts.py You can make your own!
-- *LF_shape:* Choices are 'flat', 'exp', 'linear', 'schechter_flat', and 'schechter'. For 'flat' and 'schechter_flat' option, n_galaxies galaxies will be created each iteration. For other options, n_galaxies galaxies will be created in the smallest bins per iteration. Use 'schecter' with caution because millions galaxies can be created. We recommend schecter_flat instead where the *n_iterations* magnitudes will be drawn from Schecter function within that magnitude bin but each bin is normalized to *n_galaxies* galaxies.
 - *extended_mag_bins_low:* Number of bins to be extended from min_mag. Type = int. (default = 1)
 - *extended_mag_bins_high:* Number of bins to be extended from min_mag. Type = int. (default = 1)
 - *lin_slope:* Will be used if LF_shape is 'linear'
