@@ -103,7 +103,7 @@ Modules
 
 The code is made of several modules, with the main mudule ``completeness.py``. Their descriptions are as follow.
 
-- ``run_sextractor.py``: This module runs ``SExtractor`` in dual mode. This means that the photometry is performed on the location of the sources found in the detection band. The current code run ``SExtractor`` with the command ``source-extractor``. If your computer runs ``SExtractor`` with other command, you should run ``python completeness.py -s other_command parameters.yaml``.
+- ``run_sextractor.py``: This module runs ``SExtractor`` in dual mode with the command ``source-extractor``. If your computer runs ``SExtractor`` with other command, you should run ``GLACiAR2`` with the command ``python completeness.py -s other_command parameters.yaml``.
 
 - ``write_conf_files.py``: This module is called by ``run_sextractor.py``. It reads the provided SExtractor parameters file ``SExtractor_files/parameters.sex`` amd edits the parameters to be specific to each image and band (such as RMS image name, zeropoint, and gains). It then writes a new temporary configuration file to be used by ``SExtractor``.
 
@@ -134,16 +134,16 @@ The programme then compares the new catalogue to the original catalouge by check
 - Detected below the S/N threshold (status = -3).
 - Not detected by *SExtractor* (status=-4).
 
-If required by the user, the program can run a dropout selection criteria (dropout.py).
+If required by the user, the programme can run a dropout selection criteria (dropout.py).
 
 Outputs
 ----------
 
-The code produces a set of files, images and tables. Some of them are deleted for space reasons, while others are kept as a final result. We outline them below in order of appearance.
+The code produces a set of files, images and tables. Some of them are deleted on the fly to save memory space. We outline them below.
 
 - **New images**.
 
-The new images are the created images that contain the original observed data from the survey with the simulated galaxies added. Each iteration in the simulation produces one image. These are saved and then deleted immediately after SExtractor runs on them.
+The new images are the original images with the simulated galaxies added. Each iteration in the simulation produces one image per filter. They are saved and then deleted immediately after SExtractor runs on them. Location = *path_to_results*+*Results/images/*
 
 - **SExtractor Catalogues**
 
