@@ -139,7 +139,7 @@ If required by the user, the programme can run a dropout selection criteria (dro
 Outputs
 ----------
 
-The code produces a set of files, images and tables. Some of them are deleted on the fly to save memory space. We outline them below.
+The code produces a set of files, images and tables. All are located in the specified *path_to_results* folder but some of them are deleted on the fly to save memory space. We outline them below.
 
 - **New images**.
 
