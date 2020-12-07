@@ -202,7 +202,7 @@ The second type of tables ``{LF name}_RecoveredStats_cat{field name}_nout.cat`` 
 ``GLACiAR2`` also produces a plot of the completeness, and a plot of the completeness with the selection criteria if the boolean dropouts parameters is set to True. These are the completeness as a function of intrinsic magnitude C(M).
 
 **Note on pysysp package***
-The current version from pip install pysysp is for python2. To make the code runs, a few lines in the installed pysysp need to be changed.
+The current version ``pip install pysysp`` is for python2. To make the code runs with python3, a few lines in the installed pysysp need to be changed.
 1. In pysysp.py, change "import pyfits" to "import astropy.io.fits as pyfits"
 2. In pysysp.py, change "import extinction as extlaws" to "from . import extinction as extlaws"
 3. In __init__.py, chage "from pysysp import StarSpectrum, BandPass, showfilters, listlaws" to "from .pysysp import StarSpectrum, BandPass, showfilters, listlaws"
