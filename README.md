@@ -196,16 +196,10 @@ Below are the columns in this table.
 7. Dropout_frac: Fraction of artificial sources that passed the selection criteria: N_Drop/N_Obj.
 8. Rec: Fraction of not recovered artificial sources : N_Rec/N_Obj.
 
-The second type of tables ``{LF name}_RecoveredStats_cat{field name}_nout.cat`` and ``{LF name}_RecoveredStats_cat{field name}_dout.cat`` writes out the output matrices produced by the code. The \*_nout.cat shows the number of galaxies with injected magnitude M whose recovered with status >=0 and apparent magnitude m in the detection band -- N(M,m)-- at each redshift. The \*_dout.cat shows similar matrix but for the galaxies that also pass the selection criteria.
-
-Complementary to the previous tables, the code produces one table per redshift bin (z=x.xx) with the information of every inserted sources: ``{LF name}RecoveredGAlaxies_{field name}_zx.xx.cat``. The information in these tables include their positions, the input magnitude and UV slope, the detection status, the dropout status, their recovered magnitudes and signal-to-noise ratios (AUTO, ISO, APER) in all input bands, and their recovered sizes.
-
-One last table, which is useful for redshift selection, is produced. Given that the number of bands is variable  this table is released in a Python-specific compact binary representation (using the pickle module). It does contain the ID of the object, input magnitude, status, magnitudes in all bands, and S/N for each band as well. This is an important file for redshift estimations/selection techniques. Similar to the previous tables, it contains information about the output/measured characteristics of the detected objects. It contains all the magnitudes in different bands, so it is especially useful for photometric estimations. Unlike the other two tables, this is not an ASCII file as that is not efficient and it requires too many resources.
-
+The second type of tables ``{LF name}_RecoveredStats_cat{field name}_nout.cat`` and ``{LF name}_RecoveredStats_cat{field name}_dout.cat`` writes out the output matrices produced by the code. The \*_nout.cat shows the number of galaxies with injected magnitude M whose recovered with status >=0 and apparent magnitude m in the detection band -- N(M,m)-- at each redshift. The \*_dout.cat shows similar matrix but for the galaxies that also pass the selection criteria. For ease of use, we also provide these tables in a Python-specific binary format (pickle file) as ``GLACiAR_output_{field name}.pickle``.
 
 - **Plots**
-
-``GLACiAR`` also produces a plot of the completeness and two extra plots if the boolean dropouts parameters is set to True. The first plot corresponds to the completeness function C(m) as a function of the magnitude and the redshift. The second and third plot are the S(z,m) and S(z,m)C(m). This is only produced in case the dropout technique is applied, but given the tables produced by ``GLACiAR``, it is easily calculable with the final catalogues.
+``GLACiAR2`` also produces a plot of the completeness, and a plot of the completeness with the selection criteria if the boolean dropouts parameters is set to True. These are the completeness as a function of intrinsic magnitude C(M).
 
 **Note on pysysp package***
 The current version from pip install pysysp is for python2. To make the code runs, a few lines in the installed pysysp need to be changed.
