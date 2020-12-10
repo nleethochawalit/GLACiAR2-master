@@ -86,7 +86,7 @@ Files
 
 Files required to run ``GLACiAR2``.
 
-- Science images: Files with the observed images of the survey. Include all the fields and filters. See parameter *image_name* for the naming format.
+- Science images: Files with the observed images of the survey. Include all the fields and filters. See parameter *image_name* for the naming format. If the observed field of view does not cover all pixels in the image, the pixels outside of the observing area must have zero values. Otherwise, the injected galaxies may be placed in those area.
 
 - List: Text file with the names of the fields to compute the completeness. The file name of the list should match the parameter *list_of_fields*. The file should contain at least one field.
 
