@@ -198,7 +198,7 @@ Below are the columns in this table.
 
 The second type of tables, ``{LF name}_RecoveredStats_cat{field name}_nout.cat`` and ``{LF name}_RecoveredStats_cat{field name}_dout.cat``, are the output matrices produced by the code. The \*_nout.cat shows the number of galaxies with injected magnitude M whose recovered with status >=0 and apparent magnitude m in the detection band -- N(M,m)-- at each redshift. The \*_dout.cat shows similar matrix but for the galaxies that also pass the selection criteria. For ease of use, we also provide the two tables in a Python-specific binary format (pickle file) as ``GLACiAR_output_{field name}.pickle``.
 
-To easily check or visualize the output, the code also produces ds9 region files for each iteration in /Results/SegmentationMaps. The region file indicates the locations of the injected sources, their ``SExtractor`` ID, recovered magnitude, and status. 
+To easily check or visualize the output, the code also produces one ds9 region file for each iteration in /Results/SegmentationMaps. The region file indicates locations of the injected sources, their ``SExtractor`` ID, recovered magnitude, and status. 
 
 - **Plots**
 ``GLACiAR2`` also produces a plot of the completeness, and a plot of the completeness with the selection criteria if the boolean dropouts parameters is set to True. These are the completeness as a function of intrinsic magnitude C(M).
