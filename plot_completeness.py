@@ -36,29 +36,38 @@ def main(path_to_cat,LF_shape, xarr, yarr, cat,
 
     for lf in range(len(LF_shape)):
         plt.figure(figsize=(6,6))
-        plt.imshow(cs[:,:,lf], extent=[min(y), max(y), max(x), min(x)], cmap='RdPu',
-                   origin="upper")
-        plt.xlabel('$z$', fontsize=16)
-        plt.ylabel('Input Absolute Magnitude', fontsize=16)
-        plt.yticks(np.arange(xmin, xmax, spacing_x), fontsize=16)
-        plt.xticks(np.arange(ymin, ymax, spacing_y), fontsize=16)
-        plt.colorbar().set_label(label='$C(M)$', size=16)
+        if len(y)>1:
+            plt.imshow(cs[:,:,lf], extent=[min(y), max(y), max(x), min(x)], cmap='RdPu',
+                       origin="upper")
+            plt.xlabel('$z$', fontsize=16)
+            plt.ylabel('Input Absolute Magnitude', fontsize=16)
+            plt.yticks(np.arange(xmin, xmax, spacing_x), fontsize=16)
+            plt.xticks(np.arange(ymin, ymax, spacing_y), fontsize=16)
+            plt.colorbar().set_label(label='$C(M)$', size=16)
+        else:
+            plt.plot(xarr,cs[:,0,lf])
+            plt.xlabel('Input Absolute Magnitude', fontsize=16)
+            plt.ylabel('C(M,z=%.1f)'%yarr[0])
         plt.savefig(path_to_cat+'Results/Plots/Completeness_Field'+
                     cat+'_'+LF_shape[lf]+'.pdf')
         plt.close()
-    
     
         # Enter the IF below any dropout is different than 0 ()
         curds = ds[:,:,lf]
         if np.sum(curds) != 0.0:
             plt.figure(figsize=(6,6))
-            plt.imshow(curds, extent=[min(y), max(y), max(x), min(x)],
-                       cmap='GnBu', origin="upper")
-            plt.xlabel('$z$', fontsize=16)
-            plt.ylabel('Input Absolute MAgnitude', fontsize=16)
-            plt.yticks(np.arange(xmin, xmax, spacing_x), fontsize=16)
-            plt.xticks(np.arange(ymin, ymax, spacing_y), fontsize=16)
-            plt.colorbar().set_label(label='$C(m)S(z,m)$', size=16)
+            if len(y)>1:
+                plt.imshow(curds, extent=[min(y), max(y), max(x), min(x)],
+                           cmap='GnBu', origin="upper")
+                plt.xlabel('$z$', fontsize=16)
+                plt.ylabel('Input Absolute Magnitude', fontsize=16)
+                plt.yticks(np.arange(xmin, xmax, spacing_x), fontsize=16)
+                plt.xticks(np.arange(ymin, ymax, spacing_y), fontsize=16)
+                plt.colorbar().set_label(label='$C(m)S(z,m)$', size=16)
+            else:
+                plt.plot(xarr,cs[:,0,lf])
+                plt.xlabel('Input Absolute Magnitude', fontsize=16)
+                plt.ylabel('C(M,z=%.1f)'%yarr[0])
             plt.savefig(path_to_cat+'Results/Plots/Dropouts_Field'+cat+'_'+LF_shape[lf]+'.pdf')
             plt.close()
     

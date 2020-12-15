@@ -236,7 +236,40 @@ def write_spectrum(mag, beta,redshift,path,absmag=False,refwl=1600,
     fits.writeto('%sResults/images/spec_z%.2f.fits'%(path,redshift), data, 
                  header=None, overwrite=True)
 
+def get_Jaguar(mag, redshift, path, refwl):
+    """
+    get spectrum from jaguar and write (spec.fits) of the simulated Lyman break galaxy
+    Normalize the spectrum to the requested absolute Magnitude at refwl and
+    return observed flambda with zero point magnitude = 0
+    Args:
+        
+        mag (float) = absolute magtitude at referenced wavelength.
+        redshift (float) = Input redshift of the artificial source.
+        refwl (float) = Must provide if absmag is True. Wavelength for absmag 
+                        reference in angstrom.
+    """
+    #randomly draw spec
+    s_hdu = fits.open('Files/Jaguar_Spectra.fits',ignore_missing_end=True)      
+    wavelength = wl = s_hdu[0].data # angstrom
+    specnum = random.randrange(len(s_hdu[1].data))
+    template_spec = s_hdu[1].data[specnum]
+    s_hdu.close()
+    
+    c = 2.99792458e18  # In angstrom
+    Lumdis = cosmo.luminosity_distance(redshift).to(u.parsec).value
+    spec = (template_spec*(10**(-mag/2.5))*(c/refwl**2)*(10./Lumdis)**2)/(1.+redshift)
 
+    wavelength = wavelength*(1+redshift)
+    data = [[wavelength],[spec]]
+    hdu = fits.PrimaryHDU()
+    hdu.header['CTYPE1'] = 'Wavelength'
+    hdu.header['CTYPE2'] = 'Flux'
+    t = Table(data, names=('Wavelength', 'flux'))
+    data = np.array(t)
+    fits.writeto('%sResults/images/spec_z%.2f.fits'%(path,redshift), data, 
+                 header=None, overwrite=True)
+    return specnum
+        
 def mag_band(name_band,redshift,path):
     """
     Calculate magnitude based on spectrum

@@ -1,31 +1,23 @@
-n_galaxies: 200
-n_iterations: 10
-mag_bins: 7
+LF_shape:
+- flat
 min_mag: 24.0
 max_mag: 27.0
-z_bins: 9
-min_z: 7
-max_z: 9
-n_bands: 7
-ref_uv_wl: 1600
-detection_band:
-bands:
-zeropoints:
-gain_values:
-det_combination:
-coadd_type:
-list_of_fields: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glaciar/jwst/list_jwst.txt
+mag_bins: 7
+Minput_max: -19.5
+Minput_min: -23.5
+min_z: 7.5
+max_z: 8.5
+z_bins: 2
 R_eff: 1.075
 beta_mean: -2.2
 beta_sd: 0.4
-size_pix: 0.08
-margin: 0.3
-path_to_images: /Users/nleethochawa/Documents/workspace_UVLF/jwst_mock_data/
-path_to_results: /Users/nleethochawa/Documents/workspace_UVLF/Run_Glaciar/jwst/
-image_name: borg_
-imfits_end: _drz_sci.fits
-rmsfits_end: _drz_rms_sclv2.fits
-fixed_psf:
+Jaguar_spec: true
+lin_slope: null
+exp_base: null
+ref_uv_wl: 1450
+n_inject_max: null
+n_galaxies: 200
+n_iterations: 10
 types_galaxies: 2
 sersic_indices:
 - 1
@@ -33,15 +25,40 @@ sersic_indices:
 fraction_type:
 - 0.5
 - 0.5
-ibins: 4
-ebins: 4
+de_Vacouleur: true
+ibins: 5
+ebins: 5
+n_bands: 5
+bands:
+- f125w
+- f350lp
+- f105w
+- f160w
+- f140w
+size_pix: 0.08
+detection_band: f125w
+det_combination: null
+coadd_type: null
+fixed_psf: psf_f160w_borg25.fits
+list_of_fields: test/list_0019+4360.txt
+path_to_images: test/input_images/
+path_to_results: test/outdir/
+image_name: borg_
+imfits_end: _drz_sci.fits
+rmsfits_end: _drz_rms_sclv2.fits
+gain_values:
+- 0
+- 0
+- 0
+- 0
+- 0
+zeropoints:
+- 26.23021712375807
+- 26.985933931140536
+- 26.268817868473455
+- 25.946227204106755
+- 26.45231677638996
+margin: 0.3
 min_sn: 0
-dropouts: True
-droptype: borg25
-de_Vacouleur: True
-LF_shape: ['flat']
-lin_slope: 
-exp_base:
-n_inject_max:
-Minput_min: -23.5
-Minput_max: -20.0
+dropouts: false
+droptype: null

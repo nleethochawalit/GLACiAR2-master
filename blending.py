@@ -178,9 +178,9 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                     status[i] = 0  # Status for detected and isolated sources.
                     # Write the region file for the artificial sources with
                     # status=0 in colour green. The position is the input one.
-                    g.write("circle %s %s 11 #color=green width=2 text={%s,%s}\n" %
+                    g.write("circle %d %d 11 #color=green width=2 text={%d,%.1f,%d}\n" %
                             (ypos[i], xpos[i], id_nmbr[i], 
-                             m_gal[id_mgal == id_nmbr[i]]))
+                             m_gal[id_mgal == id_nmbr[i]]),status[i])
                 # If there was a source previously on the pixels where the new
                 # source was found, enter the IF below.
                 # These are objects detected and blended.
@@ -205,9 +205,9 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             # object but intrinsic mag is brighter
                             # Write the region file for the artificial sources
                             # with status=2 in colour blue.
-                            g.write("circle %s %s 11 #color=blue width=2 text={%s,%s}\n" %
+                            g.write("circle %d %d 11 #color=blue width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]))
+                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
 
                         # If the flux or overlap conditions aren't true, do the
                         # following
@@ -215,9 +215,9 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             status[i] = -1 # Status code for blended with brighter object.
                             # Write the region file for the artificial sources
                             # with status=-1 in colour red.
-                            g.write("circle %s %s 11 #color=red width=2 text={%s,%s}\n" %
+                            g.write("circle %d %d 11 #color=red width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]))
+                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
 
                     # if the magnitude of the old source is fainter than the
                     # input magnitude, enter the IF below.
@@ -232,9 +232,9 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             status[i] = -2  #blended with a large object.
                             # Write the region file for the artificial sources
                             # with status=-2 in colour red.
-                            g.write("circle %s %s 11 #color=pink width=2 text={%s,%s}\n" %
+                            g.write("circle %d %d 11 #color=pink width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]))
+                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
                         
                         else:        
                             # Status code for blended with fainter object.
@@ -242,9 +242,9 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             status[i] = 1 # Status code for blended with fainter object.
                             # Write the region file for the artificial sources
                             # with status=1 in colour blue.
-                            g.write("circle %s %s 11 #color=cyan width=2 text={%s,%s}\n" %
+                            g.write("circle %d %d 11 #color=cyan width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]))
+                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
 
             # If the S/N of the newly identified source is below the required,
             # threshold, enter the ELSE below.
@@ -253,9 +253,9 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                 status[i] = -3
                 # Write the region file for the artificial sources with
                 # status=-3 in colour Magenta.
-                g.write("circle %s %s 11 #color=magenta width=2 text={%s,%s}\n" %
+                g.write("circle %d %d 11 #color=magenta width=2 text={%d,%.1f,%d}\n" %
                                 (ypos[i], xpos[i], id_nmbr[i], 
-                                 m_gal[id_mgal == id_nmbr[i]]))
+                                 m_gal[id_mgal == id_nmbr[i]]),status[i])
 
         # If all values of the new segmentation map within the search grid are
         # zero, the object has not been detected by SExtractor.
@@ -263,7 +263,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
             status[i] = -4  # Status for sources not detected by SExtractor.
             # Write the region file for the artificial sources with status=-4
             # in colour red.
-            g.write("box %s %s 11 11 0 #color=red width=2\n" %
+            g.write("box %d %d 11 11 0 #color=red width=2\n" %
                     (ypos[i], xpos[i]))          
     # Close the .reg file.
     g.close()

@@ -127,6 +127,9 @@ if parameters['n_inject_max'] is None:
     parameters['n_inject_max'] = parameters['n_galaxies']
 if ((parameters['coadd_type'] <= 0) or (parameters['coadd_type'] > 2)):
     raise ValueError('Input coadd_type will not be recognized.')
+if parameters['Jaguar_spec'] is None:
+    parameters['Jaguar_spec'] = False
+    
 def delete_id_fits(original_file, ids, id_keep=False):
     """Delete sextractor entries in fits format by id number"""
     
@@ -673,12 +676,20 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
                         # Assign a random beta 
                         m = np.zeros(parameters['n_bands'])
                         flux = np.zeros(parameters['n_bands'])
-                        beta = random.gauss(parameters['beta_mean'],
-                                            parameters['beta_sd'])
-                        # Create spectrum
-                        creation_of_galaxy.write_spectrum(Magnitude, beta, 
-                                         redshift, parameters['path_to_results'], 
-                                         absmag=True, refwl = refwl)
+                        
+                        if parameters['Jaguar_spec'] is True:
+                            beta = creation_of_galaxy.get_Jaguar(Magnitude, redshift, 
+                                                                 parameters['path_to_results'], 
+                                                                 refwl)
+                            #beta here is the index number in the Jaguar catalog
+                        else:
+                            beta = random.gauss(parameters['beta_mean'],
+                                                parameters['beta_sd'])
+                            # Create spectrum
+                            creation_of_galaxy.write_spectrum(Magnitude, beta, 
+                                             redshift, parameters['path_to_results'], 
+                                             absmag=True, refwl = refwl)
+                            
                         
                         # Calculate input (theoretical observed) AB mag in each band
                         for ib in range(parameters['n_bands']):      
@@ -711,7 +722,7 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
                                     name_hdu_list1+parameters['detection_band']+parameters['imfits_end'], 
                                     ninject, stampsize, Re)
                             
-                            # Assign a random beta, incl, and elip.
+                            # Assign a random incl, and elip.
                             i_rand = np.random.randint(0, parameters['ibins'],
                                                        size=ninject)
                             e_rand = np.random.randint(0, parameters['ebins'],
