@@ -17,6 +17,7 @@ from shutil import copyfile
 import warnings
 import datetime
 import argparse
+import glob
 
 print(datetime.datetime.now())
 
@@ -25,16 +26,15 @@ msg = ""
 parser = argparse.ArgumentParser(description=msg)
 parser.add_argument('parameter_file', type=str, 
                     help='Name of the yaml parameter file')
-parser.add_argument("-m", "--minimal", action = "store_true", 
-                    default = True, help = "Only Keep minimum number of files (default: True)")
+parser.add_argument("-f", "--full", action = "store_true", 
+                    default = False, help = "To keep all the files generated (default: False)")
 parser.add_argument("-s", "--SExtractor_command", action = "store", 
                     default = 'source-extractor',dest = 'SExtractor_command', 
                     help = "SExtractor command (default: source-extractor)")
 args = parser.parse_args()
 parameter_file = args.parameter_file
-minimal_file = args.minimal
+minimal_file = not args.full
 SExtractor_command = args.SExtractor_command
-    
 print("parameter file: %s"%parameter_file)
 print("SExtractor command: %s"%SExtractor_command)
 print("Minimal File: %s"%minimal_file)
@@ -105,8 +105,8 @@ if parameters['ibins'] is None:
     parameters['ibins'] = 9
 if parameters['ebins'] is None:
     parameters['ebins'] = 5
-if parameters['sersic_indices'][1] is None:
-    parameters['sersic_indices'][1] = 4
+if parameters['sersic_indices'][0] is None:
+    parameters['sersic_indices'][0] = 4
 if parameters['fraction_type'] is None:
     parameters['fraction_type'] = [0.5, 0.5]
 if parameters['margin'] is None:
@@ -115,8 +115,8 @@ if parameters['min_sn'] is None:
     parameters['min_sn'] = 0
 if parameters['dropouts'] is None:
     parameters['dropouts'] = False
-if parameters['de_Vacouleur'] is None:
-    parameters['de_Vacouleur'] = False
+if parameters['de_Vacouleurs'] is None:
+    parameters['de_Vacouleurs'] = False
 if parameters['LF_shape'] is None:
     parameters['LF_shape'] = ['schechter_flat']
 if parameters['lin_slope'] is None:
@@ -132,17 +132,17 @@ if parameters['Jaguar_spec'] is None:
     
 def delete_id_fits(original_file, ids, id_keep=False):
     """Delete sextractor entries in fits format by id number"""
-    
-    f1 = fits.open(original_file,ignore_missing_end=True)
-    if id_keep is True:
-        indices = np.where(np.in1d(f1[1].data['NUMBER'], ids, 
-                                   assume_unique=True))[0]
-    else:
-        indices = np.where(np.in1d(f1[1].data['NUMBER'], ids, 
-                                   assume_unique=True, invert=True))[0]
-    
-    f1[1].data = f1[1].data[indices] 
-    f1.writeto(original_file,overwrite=True)
+    if os.path.exists("original_file"):
+        f1 = fits.open(original_file,ignore_missing_end=True)
+        if id_keep is True:
+            indices = np.where(np.in1d(f1[1].data['NUMBER'], ids, 
+                                       assume_unique=True))[0]
+        else:
+            indices = np.where(np.in1d(f1[1].data['NUMBER'], ids, 
+                                       assume_unique=True, invert=True))[0]
+        
+        f1[1].data = f1[1].data[indices] 
+        f1.writeto(original_file,overwrite=True)
         
 def delete_multiple_lines(original_file, line_numbers, line_keep=False):
     """In a file, delete the lines at line number in given list"""
@@ -190,7 +190,7 @@ def create_stamps(n0, size_galaxy0, Re0, types_galaxies0, ebins0, ibins0):
                                         corresponding flux for each
                                         pixel.
         galaxy_grid_n4 (float array) = Stamp of galaxy with n=4 if
-                                      "de_Vacouleur" is True. Otherwise, set
+                                      "de_Vacouleurs" is True. Otherwise, set
                                       to 0.
     """
     galaxy_grid = np.zeros((types_galaxies0, ebins0, ibins0, size_galaxy0,
@@ -201,7 +201,7 @@ def create_stamps(n0, size_galaxy0, Re0, types_galaxies0, ebins0, ibins0):
     for i in range(types_galaxies0):
         print('Creating stamps for sersic index %d'%n0[i])
         bn = creation_of_galaxy.get_bn(n0[i])
-        if (parameters['de_Vacouleur'] is True and n0[i] == 4):
+        if (parameters['de_Vacouleurs'] is True and n0[i] == 4):
             galaxy_grid_n4[:, :] = creation_of_galaxy.makeSersic(n0[i], bn,
                                                                  Re0, 0, 0,
                                                                  size_galaxy0)
@@ -274,7 +274,7 @@ def place_gal(n0, ngal, frac_n, e0, i0, flux0, frame0, x0, y0, s0, gal_g,
         # Run a loop for each galaxy with the given index.
         for j in range(n_fraction):
             # Scale the galaxy flux with the real flux.
-            if parameters['de_Vacouleur'] is True and n0[i] == 4:
+            if parameters['de_Vacouleurs'] is True and n0[i] == 4:
                 galaxy = gal_g_n4[:, :] * flux0
             else:
                 galaxy = gal_g[i, e0[gn], i0[gn], :, :] * flux0
@@ -475,6 +475,10 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
     copyfile('SExtractor_files/parameters.sex',
              parameters['path_to_results']+'parameters.sex')
     print('Results will be in %s'%parameters['path_to_results'])
+    
+    #Check if the provided throughputs are normalized. 
+    creation_of_galaxy.normalize_throughputs(parameters['bands'])
+    
     #copy Schechter parameter if LF shape is specified as Schechter    
     for ilf in range(nLF):
         parameters['LF_shape'][ilf] = parameters['LF_shape'][ilf].lower()
@@ -583,7 +587,7 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
             stampsize = int(np.round(np.ceil(1.8/parameters['size_pix']/2))*2) #in pixels, and is even number
             if stampsize < int(Re)*5: stampsize=int(Re)*5
             stamp_radius = stampsize/2  # Radius of the galaxy stamp.
-        
+            print('creating stamps with size %d x %d pixels'%(stampsize,stampsize))
             #Make galaxy stamps with specified Re, and stamp size, and various
             #ellipticity and inclinations. 
             galaxy_grid, galaxy_grid_n4 = create_stamps(
@@ -633,14 +637,19 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
                 fwg = open(parameters['path_to_results']+'Results/'+curLF+
                            'RecoveredGalaxies_'+cat[ic]+'_z%.2f'%redshift+
                            '.cat', 'w')
-                headline = ('#Mbin, Minput, niter, round_number, id, beta, '
-                            'input %s mag, '%(parameters['bands'][ibmain]) +
-                            'detection, dropout, mag_auto and magerr_auto pairs, ' 
-                            'mag_iso and sn_iso pairs, mag_aper1 and sn_aper1 pairs, '
-                            'mag_aper2 and sn_aper2 pairs,'
-                            'mag_aper3 and sn_aper3 pairs in the following bands '+
-                            ''.join([' %s'%x for x in parameters['bands']]) + 
-                            ', Kron radius (pixels), r90, xpos, ypos \n')
+                if parameters['Jaguar_spec'] is True:
+                    sixthcol='jaguar_id'
+                else:
+                    sixthcol='beta'
+                headline = ('# Mbin, Minput, niter, round_number, sexcat_id, '+sixthcol+
+                            ', input_%s'%(parameters['bands'][ibmain]) +
+                            ', det_status, drop_status'+
+                            ''.join([', %s_AUTO, %s_errAUTO'%(x,x) for x in parameters['bands']])+
+                            ''.join([', %s_ISO, %s_snISO'%(x,x) for x in parameters['bands']])+
+                            ''.join([', %s_APER1, %s_snAPER1'%(x,x) for x in parameters['bands']])+
+                            ''.join([', %s_APER2, %s_snAPER2'%(x,x) for x in parameters['bands']])+
+                            ''.join([', %s_APER3, %s_snAPER3'%(x,x) for x in parameters['bands']])+
+                            ', Kron_radius, r90, xpos, ypos \n')
                 fwg.writelines(headline)    
                 fwg.close()        
                 
@@ -778,7 +787,18 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
                                     os.remove(parameters['path_to_results'] + 
                                         'Results/images/sersic_sources_' +
                                         '%s_%s.fits'%(cat[ic],parameters['bands'][ib]))
-                            
+                            else:
+                                for ib in range(parameters['n_bands']): 
+                                    os.rename(parameters['path_to_results'] + 
+                                        'Results/images/sersic_sources_' +
+                                        '%s_%s.fits'%(cat[ic],parameters['bands'][ib]),
+                                        parameters['path_to_results'] + 
+                                        'Results/images/sersic_sources_' +
+                                        '%s_%s_mag%.1f_z%.2f_i%d.%d_%s.fits'%
+                                        (parameters['path_to_results'],cat[ic],
+                                         M_input[iM],redshift,niter,ir,
+                                         parameters['bands'][ib]))
+                                    
                             # Find the number of sources for the different categories
                             # of detection status.
                             fwg = open(parameters['path_to_results']+'Results/'+curLF+
@@ -823,7 +843,7 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
                                     nout[:,v] = nout[:,v] + nout_c
                                     dout[:,v] = dout[:,v] + nout_d
                             print('      round %d/%d, inject %d, detect %d, dropout %d (in magbins)'%
-                                  (ir+1,nrounds, ninject, np.sum(nout_c),np.sum(nout_d)))
+                                  (ir+1,nrounds, ninject, identified_aux+blended_f1_aux+blended_f2_aux,np.sum(nout_d)))
                             
                             #delete big files
                             if minimal_file is True:
@@ -831,13 +851,26 @@ def main(minimal_file=True,SExtractor_command='source-extractor'):
                                     'Results/SegmentationMaps/Segmentation_maps_i' +
                                     '%d.%d'%(niter,ir)+ '_' + 
                                     parameters['detection_band'] + '.fits') 
+                                #delete small but can contribute to large number of files
+                                #Can uncomment if the computer has limit on the number of files.
+                                if niter>1:
+                                    os.remove(parameters['path_to_results'] + 
+                                        'Results/SegmentationMaps/region_'+
+                                        '%s_mag%.1f_z%.2f_i%d.%d.reg'%(cat[ic],M_input[iM],
+                                                                    redshift,niter,ir))
+                                    for ib in range(parameters['n_bands']):
+                                        os.remove('%sResults/Catalogs/source_%s_mag%.1f_z%.2f_i%d.%d_%s_cat.fits'%
+                                                  (parameters['path_to_results'],cat[ic],
+                                                    M_input[iM],redshift,niter,ir,
+                                                    parameters['bands'][ib]))
+                            
                             # Only keep sextracted catalog of injected galaxies. 
                             # Delete real sources that are originally there
                             for ib in range(parameters['n_bands']):
                                 delete_id_fits('%sResults/Catalogs/source_%s_mag%.1f_z%.2f_i%d.%d_%s_cat.fits'%
                                     (parameters['path_to_results'],cat[ic],
-                                     M_input[iM],redshift,niter,ir,
-                                     parameters['bands'][ib]), 
+                                      M_input[iM],redshift,niter,ir,
+                                      parameters['bands'][ib]), 
                                     id_nmbr, id_keep = True)
                         #finish looping over rounds
                         if totinject != ngals[iM]:

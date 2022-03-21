@@ -28,15 +28,13 @@ def science_image(name_band, detection_band, zp, g, path_to_im,
         cat (string) = Name of the field for which the simulation is being run.
     """
     # New parameters files are created for SExtractor.
-    # If detection band is 'det', make sure it makes segmentation image for the det band
-    do_segment_on_first = False
-    if detection_band == 'det': 
-        do_segment_on_first = True
+
     for i in range(len(name_band)):
-        #write sextractor parameter file for the band
-        do_segmentation=False
-        if i==0 and do_segment_on_first: do_segmentation=True
         
+        # If detection band is 'det', make sure it makes segmentation image for the det band
+        do_segmentation = ((i==0) and (detection_band == 'det'))
+        
+        #write sextractor parameter file for the band
         write_conf_files.main(name_band[i], detection_band, zp[i], 
                               g[i],	path_to_im, path_to_results, 0, 
                               image_name, cat, rmsfits_end,

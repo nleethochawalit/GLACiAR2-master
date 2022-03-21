@@ -12,6 +12,8 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.cosmology import Planck15 as cosmo
 from astropy import units as u
+from shutil import copyfile
+
 def gammainc(s, x):
     """
     Define and return the value of the gamma incomplete function.
@@ -250,11 +252,15 @@ def get_Jaguar(mag, redshift, path, refwl):
     """
     #randomly draw spec
     s_hdu = fits.open('Files/Jaguar_Spectra.fits',ignore_missing_end=True)      
-    wavelength = wl = s_hdu[0].data # angstrom
+    wavelength = s_hdu[0].data # angstrom
     specnum = random.randrange(len(s_hdu[1].data))
     template_spec = s_hdu[1].data[specnum]
     s_hdu.close()
+    #make the flux at refwl equal to 1
+    template_spec = template_spec/template_spec[int(refwl)]  #note that the template spec must start from 1,2,3,...angstrom
     
+    #normalize with theoretical observed flux at ref wl (flambda)
+    #this flux has zero_point magnitude = 0
     c = 2.99792458e18  # In angstrom
     Lumdis = cosmo.luminosity_distance(redshift).to(u.parsec).value
     spec = (template_spec*(10**(-mag/2.5))*(c/refwl**2)*(10./Lumdis)**2)/(1.+redshift)
@@ -269,7 +275,18 @@ def get_Jaguar(mag, redshift, path, refwl):
     fits.writeto('%sResults/images/spec_z%.2f.fits'%(path,redshift), data, 
                  header=None, overwrite=True)
     return specnum
-        
+
+def normalize_throughputs(bands):
+    for band in bands:
+        filename = 'Files/' + band + '.tab'
+        data = np.loadtxt(filename) #wavelenght, and throughput
+        max_throughput = np.max(data[:,1])
+        if max_throughput!=1:
+            print('%s throughput is not normalized. I will copy the file and create a new normalized file.'%band)
+            data[:,1] = data[:,1]/max_throughput
+            copyfile(filename,'Files/' + band + '.tab'+'.sav')    
+            np.savetxt(filename,data)
+            
 def mag_band(name_band,redshift,path):
     """
     Calculate magnitude based on spectrum

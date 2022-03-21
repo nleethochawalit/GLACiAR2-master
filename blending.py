@@ -20,7 +20,8 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
         Mbin (float) = Input absolute magnitude bin
         Min (float) = Initial input absolute magnitude for the simulated galaxy 
                      (at UV wavelenght).
-        beta (float) = Initial input beta for the simulatted galaxy.        
+        beta (float) = Initial input beta for the simulatted galaxy (if spectrum is power-law)
+                     = index number in Jaguar_Spectra.fits (if spectrum is real SED)
         redshift (float) = Redshift for the simulated galaxy.
         xpos (int array) = Position of the simulated galaxy in the x axis.
         ypos (int array) = Position of the simulated galaxy in the y axis.
@@ -180,7 +181,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                     # status=0 in colour green. The position is the input one.
                     g.write("circle %d %d 11 #color=green width=2 text={%d,%.1f,%d}\n" %
                             (ypos[i], xpos[i], id_nmbr[i], 
-                             m_gal[id_mgal == id_nmbr[i]]),status[i])
+                             m_gal[id_mgal == id_nmbr[i]],status[i]))
                 # If there was a source previously on the pixels where the new
                 # source was found, enter the IF below.
                 # These are objects detected and blended.
@@ -207,7 +208,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             # with status=2 in colour blue.
                             g.write("circle %d %d 11 #color=blue width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
+                                     m_gal[id_mgal == id_nmbr[i]],status[i]))
 
                         # If the flux or overlap conditions aren't true, do the
                         # following
@@ -217,7 +218,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             # with status=-1 in colour red.
                             g.write("circle %d %d 11 #color=red width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
+                                     m_gal[id_mgal == id_nmbr[i]],status[i]))
 
                     # if the magnitude of the old source is fainter than the
                     # input magnitude, enter the IF below.
@@ -234,7 +235,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             # with status=-2 in colour red.
                             g.write("circle %d %d 11 #color=pink width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
+                                     m_gal[id_mgal == id_nmbr[i]],status[i]))
                         
                         else:        
                             # Status code for blended with fainter object.
@@ -244,7 +245,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                             # with status=1 in colour blue.
                             g.write("circle %d %d 11 #color=cyan width=2 text={%d,%.1f,%d}\n" %
                                     (ypos[i], xpos[i], id_nmbr[i], 
-                                     m_gal[id_mgal == id_nmbr[i]]),status[i])
+                                     m_gal[id_mgal == id_nmbr[i]],status[i]))
 
             # If the S/N of the newly identified source is below the required,
             # threshold, enter the ELSE below.
@@ -255,7 +256,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
                 # status=-3 in colour Magenta.
                 g.write("circle %d %d 11 #color=magenta width=2 text={%d,%.1f,%d}\n" %
                                 (ypos[i], xpos[i], id_nmbr[i], 
-                                 m_gal[id_mgal == id_nmbr[i]]),status[i])
+                                 m_gal[id_mgal == id_nmbr[i]],status[i]))
 
         # If all values of the new segmentation map within the search grid are
         # zero, the object has not been detected by SExtractor.
@@ -332,7 +333,7 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
     kron_radius = kron_radius[id_nmbr.astype(int)-1]
     radius90 = radius90[id_nmbr.astype(int)-1]
     
-    wnondetect = np.nonzero(status == 4)[0]
+    wnondetect = np.nonzero(status == -4)[0]
     if len(wnondetect) > 0 :
         mag_iso[wnondetect,:] = -99
         mag_auto[wnondetect,:] = -99
@@ -363,11 +364,11 @@ def main(path_to_results, niter, roundnum, detection_band, cat, Mbin, Min,
         line = ('%.1f\t%.2f\t%d\t%d\t%d\t%.2f\t%.2f\t%d\t%d'
                 %(Mbin, Min, niter, roundnum, id_nmbr[i],beta, input_mag,
                   status[i], drops[i])+ 
-                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_auto[i,:],magerr_auto[i,:])])+
-                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_iso[i,:],sn_iso[i,:])]) +
-                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_aper1[i,:],sn_aper1[i,:])]) +
-                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_aper2[i,:],sn_aper2[i,:])]) +
-                ''.join(['\t%.2E\t%.2E'%(x,y) for x,y in zip(mag_aper3[i,:],sn_aper3[i,:])]) +
+                ''.join(['\t%.5E\t%.5E'%(x,y) for x,y in zip(mag_auto[i,:],magerr_auto[i,:])])+
+                ''.join(['\t%.5E\t%.5E'%(x,y) for x,y in zip(mag_iso[i,:],sn_iso[i,:])]) +
+                ''.join(['\t%.5E\t%.5E'%(x,y) for x,y in zip(mag_aper1[i,:],sn_aper1[i,:])]) +
+                ''.join(['\t%.5E\t%.5E'%(x,y) for x,y in zip(mag_aper2[i,:],sn_aper2[i,:])]) +
+                ''.join(['\t%.5E\t%.5E'%(x,y) for x,y in zip(mag_aper3[i,:],sn_aper3[i,:])]) +
                 '\t%.3f\t%.3f\t%.1f\t%.1f\n'%(kron_radius[i],radius90[i],xpos[i],ypos[i]))
                                          
         # Write line in the file 'RecoveredGalaxies_cat_z#.cat'
